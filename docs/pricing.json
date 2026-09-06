@@ -7,7 +7,7 @@
     "subscriptionsEnabled": false,
     "restorePurchasesEnabled": true,
     "freeTierEnabled": true,
-    "showGithubLink": true,
+    "showGithubLink": false,
     "showAppleEula": true
   },
   "banner": {

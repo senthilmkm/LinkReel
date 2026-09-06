@@ -187,14 +187,6 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
               </TouchableOpacity>
             </>
           )}
-          {pricing.flags.showGithubLink && (
-            <>
-              <Text style={styles.linkDot}>·</Text>
-              <TouchableOpacity onPress={() => void IapService.openLegal(legal.githubUrl)}>
-                <Text style={styles.link}>GitHub</Text>
-              </TouchableOpacity>
-            </>
-          )}
         </View>
       </View>
     </SafeAreaView>

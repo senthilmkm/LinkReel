@@ -176,7 +176,7 @@ export function sanitizePricing(raw: unknown, base: PricingConfig = FALLBACK_PRI
       subscriptionsEnabled: asBool(r.flags.subscriptionsEnabled, false),
       restorePurchasesEnabled: asBool(r.flags.restorePurchasesEnabled, true),
       freeTierEnabled: asBool(r.flags.freeTierEnabled, true),
-      showGithubLink: asBool(r.flags.showGithubLink, true),
+      showGithubLink: asBool(r.flags.showGithubLink, false),
       showAppleEula: asBool(r.flags.showAppleEula, true),
     },
     banner: {
