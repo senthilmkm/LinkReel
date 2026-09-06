@@ -1,8 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Colors } from '../theme/colors';
-import { CREDIT_PACKS, FREE_REEL_CREDITS, LEGAL_URLS } from '../config/billing';
 import { IapService } from '../services/iap';
+import {
+  getPricing,
+  refreshPricing,
+  subscribePricing,
+  visibleCreditPacks,
+  visibleSubscriptions,
+  type PricingConfig,
+} from '../services/pricing';
 
 interface Props {
   userId: string;
@@ -11,10 +18,29 @@ interface Props {
   onCreditsChanged: (creditsRemaining: number) => void;
 }
 
+function bannerColors(tone: PricingConfig['banner']['tone']) {
+  if (tone === 'warning') return { border: Colors.statusError, title: Colors.statusError };
+  if (tone === 'promo') return { border: Colors.accentAmber, title: Colors.accentAmber };
+  return { border: Colors.accentCyan, title: Colors.accentCyan };
+}
+
 export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCreditsChanged }) => {
+  const [pricing, setPricing] = useState(getPricing);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const buy = async (productId: (typeof CREDIT_PACKS)[number]['productId']) => {
+  useEffect(() => {
+    const unsub = subscribePricing(setPricing);
+    void refreshPricing().then(setPricing);
+    return unsub;
+  }, []);
+
+  const packs = visibleCreditPacks(pricing);
+  const subs = visibleSubscriptions(pricing);
+  const legal = pricing.legal;
+  const banner = pricing.banner;
+  const bannerTone = bannerColors(banner.tone);
+
+  const buy = async (productId: string) => {
     setBusy(productId);
     try {
       const result = await IapService.purchasePack(userId, productId);
@@ -42,46 +68,91 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.kicker}>ONE-TIME CREDIT PACKS</Text>
-        <Text style={styles.headline}>Continue making reels</Text>
-        <Text style={styles.subheadline}>
-          New installs get {FREE_REEL_CREDITS} free finished reels — not unlimited, and not 10. Planning the 4 scenes stays free forever. Each Generate uses 1 credit. This is not a subscription. Nothing auto-renews.
-        </Text>
+        <Text style={styles.kicker}>{pricing.paywall.kicker}</Text>
+        <Text style={styles.headline}>{pricing.paywall.headline}</Text>
+        <Text style={styles.subheadline}>{pricing.paywall.subheadline}</Text>
+
+        {banner.enabled && Boolean(banner.message) && (
+          <View style={[styles.banner, { borderColor: bannerTone.border }]}>
+            {banner.title ? <Text style={[styles.bannerTitle, { color: bannerTone.title }]}>{banner.title}</Text> : null}
+            <Text style={styles.bannerBody}>{banner.message}</Text>
+          </View>
+        )}
 
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Credits left</Text>
+          <Text style={styles.balanceLabel}>{pricing.paywall.balanceLabel}</Text>
           <Text style={styles.balanceValue}>{credits}</Text>
         </View>
 
-        {CREDIT_PACKS.map((pack) => (
-          <TouchableOpacity
-            key={pack.productId}
-            style={styles.packCard}
-            onPress={() => void buy(pack.productId)}
-            disabled={Boolean(busy)}
-            activeOpacity={0.85}
-          >
-            <View style={styles.packText}>
-              <Text style={styles.packTitle}>{pack.title}</Text>
-              <Text style={styles.packSub}>{pack.subtitle}</Text>
-            </View>
-            {busy === pack.productId ? (
-              <ActivityIndicator color={Colors.textPrimary} />
-            ) : (
-              <Text style={styles.packPrice}>{pack.displayPrice}</Text>
-            )}
-          </TouchableOpacity>
-        ))}
+        {!pricing.flags.purchasesEnabled && (
+          <Text style={styles.offNote}>{pricing.paywall.purchasesOffMessage}</Text>
+        )}
+
+        {packs.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{pricing.paywall.packsSectionTitle}</Text>
+            {packs.map((pack) => (
+              <TouchableOpacity
+                key={pack.productId}
+                style={[styles.packCard, pack.highlighted && styles.packHighlight]}
+                onPress={() => void buy(pack.productId)}
+                disabled={Boolean(busy) || !pricing.flags.purchasesEnabled}
+                activeOpacity={0.85}
+              >
+                <View style={styles.packText}>
+                  <View style={styles.packTitleRow}>
+                    <Text style={styles.packTitle}>{pack.title}</Text>
+                    {pack.badge ? <Text style={styles.badge}>{pack.badge}</Text> : null}
+                  </View>
+                  <Text style={styles.packSub}>{pack.subtitle}</Text>
+                  {pack.description ? <Text style={styles.packDesc}>{pack.description}</Text> : null}
+                </View>
+                {busy === pack.productId ? (
+                  <ActivityIndicator color={Colors.textPrimary} />
+                ) : (
+                  <Text style={styles.packPrice}>{pack.displayPrice}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
+        {subs.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>{pricing.paywall.subscriptionsSectionTitle}</Text>
+            {subs.map((sub) => (
+              <TouchableOpacity
+                key={sub.productId}
+                style={[styles.packCard, sub.highlighted && styles.packHighlight]}
+                onPress={() => void buy(sub.productId)}
+                disabled={Boolean(busy) || !pricing.flags.purchasesEnabled}
+                activeOpacity={0.85}
+              >
+                <View style={styles.packText}>
+                  <View style={styles.packTitleRow}>
+                    <Text style={styles.packTitle}>{sub.title}</Text>
+                    {sub.badge ? <Text style={styles.badge}>{sub.badge}</Text> : null}
+                  </View>
+                  <Text style={styles.packSub}>{sub.subtitle}</Text>
+                  {sub.description ? <Text style={styles.packDesc}>{sub.description}</Text> : null}
+                  {sub.legalNote ? <Text style={styles.packLegal}>{sub.legalNote}</Text> : null}
+                </View>
+                {busy === sub.productId ? (
+                  <ActivityIndicator color={Colors.textPrimary} />
+                ) : (
+                  <Text style={styles.packPrice}>{sub.displayPrice}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+
+        {pricing.flags.purchasesEnabled && !pricing.flags.subscriptionsEnabled && (
+          <Text style={styles.offNote}>{pricing.paywall.subscriptionsDisabledNote}</Text>
+        )}
 
         <View style={styles.featuresCard}>
-          {[
-            '1 credit = 1 finished reel. Planning does not use a credit',
-            `Free: ${FREE_REEL_CREDITS} generates on this iPhone. Then a pack is required`,
-            '$4.99 buys 10 reels. $9.99 buys 25 reels. One-time, not a subscription',
-            'Nora or Alex voiceover, captions, 1080×1920',
-            'App Store screenshots and preview video when Apple has one',
-            'Save to Photos. The in-app video link expires in 7 days',
-          ].map((feat) => (
+          {pricing.paywall.features.map((feat) => (
             <View key={feat} style={styles.featRow}>
               <Text style={styles.featMark}>•</Text>
               <Text style={styles.featText}>{feat}</Text>
@@ -89,31 +160,41 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
           ))}
         </View>
 
-        <Text style={styles.legalBody}>
-          Payment is charged to your Apple ID at confirmation. Prices above are USD; Apple shows and charges the price for your storefront. These are consumable In-App Purchases, not auto-renewing subscriptions. Unused credits stay on this iPhone account. Used credits cannot be restored or refunded except as Apple requires. Restore Purchases only finishes a buy that was interrupted (you were charged but credits were not added).
-        </Text>
+        <Text style={styles.legalBody}>{pricing.paywall.legalBody}</Text>
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => void restore()} disabled={Boolean(busy)} style={styles.restoreBtn}>
-          <Text style={styles.restoreText}>{busy === 'restore' ? 'Restoring…' : 'Restore Purchases'}</Text>
-        </TouchableOpacity>
+        {pricing.flags.restorePurchasesEnabled && (
+          <TouchableOpacity onPress={() => void restore()} disabled={Boolean(busy)} style={styles.restoreBtn}>
+            <Text style={styles.restoreText}>
+              {busy === 'restore' ? pricing.paywall.restoreBusyLabel : pricing.paywall.restoreLabel}
+            </Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.linkRow}>
-          <TouchableOpacity onPress={() => void IapService.openLegal(LEGAL_URLS.terms)}>
+          <TouchableOpacity onPress={() => void IapService.openLegal(legal.termsUrl)}>
             <Text style={styles.link}>Terms of Use</Text>
           </TouchableOpacity>
           <Text style={styles.linkDot}>·</Text>
-          <TouchableOpacity onPress={() => void IapService.openLegal(LEGAL_URLS.privacy)}>
+          <TouchableOpacity onPress={() => void IapService.openLegal(legal.privacyUrl)}>
             <Text style={styles.link}>Privacy Policy</Text>
           </TouchableOpacity>
-          <Text style={styles.linkDot}>·</Text>
-          <TouchableOpacity onPress={() => void IapService.openLegal(LEGAL_URLS.appleEula)}>
-            <Text style={styles.link}>Apple EULA</Text>
-          </TouchableOpacity>
-          <Text style={styles.linkDot}>·</Text>
-          <TouchableOpacity onPress={() => void IapService.openLegal(LEGAL_URLS.github)}>
-            <Text style={styles.link}>GitHub</Text>
-          </TouchableOpacity>
+          {pricing.flags.showAppleEula && (
+            <>
+              <Text style={styles.linkDot}>·</Text>
+              <TouchableOpacity onPress={() => void IapService.openLegal(legal.appleEulaUrl)}>
+                <Text style={styles.link}>Apple EULA</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          {pricing.flags.showGithubLink && (
+            <>
+              <Text style={styles.linkDot}>·</Text>
+              <TouchableOpacity onPress={() => void IapService.openLegal(legal.githubUrl)}>
+                <Text style={styles.link}>GitHub</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -135,7 +216,16 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 24 },
   kicker: { color: Colors.accentAmber, fontSize: 12, fontWeight: '800', letterSpacing: 1, marginBottom: 8 },
   headline: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, marginBottom: 10 },
-  subheadline: { fontSize: 15, color: Colors.textSecondary, lineHeight: 22, marginBottom: 20 },
+  subheadline: { fontSize: 15, color: Colors.textSecondary, lineHeight: 22, marginBottom: 16 },
+  banner: {
+    backgroundColor: Colors.surfaceCard,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+  },
+  bannerTitle: { fontSize: 14, fontWeight: '800', marginBottom: 4 },
+  bannerBody: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19 },
   balanceCard: {
     backgroundColor: Colors.surfaceCard,
     borderRadius: 14,
@@ -149,6 +239,15 @@ const styles = StyleSheet.create({
   },
   balanceLabel: { color: Colors.textSecondary, fontSize: 14, fontWeight: '600' },
   balanceValue: { color: Colors.textPrimary, fontSize: 22, fontWeight: '800' },
+  sectionTitle: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  offNote: { color: Colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 12 },
   packCard: {
     backgroundColor: Colors.surfaceCard,
     borderRadius: 16,
@@ -160,9 +259,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  packHighlight: { borderColor: Colors.accentIndigo },
   packText: { flex: 1, paddingRight: 12 },
+  packTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   packTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '800' },
+  badge: {
+    color: Colors.accentAmber,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
   packSub: { color: Colors.textSecondary, fontSize: 13, marginTop: 4 },
+  packDesc: { color: Colors.textMuted, fontSize: 12, marginTop: 4, lineHeight: 17 },
+  packLegal: { color: Colors.textMuted, fontSize: 11, marginTop: 6, lineHeight: 16 },
   packPrice: { color: Colors.accentCyan, fontSize: 18, fontWeight: '800' },
   featuresCard: {
     marginTop: 10,

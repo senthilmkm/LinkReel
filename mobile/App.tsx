@@ -12,6 +12,7 @@ import { VideoStudioScreen } from './src/screens/VideoStudioScreen';
 import { PaywallScreen } from './src/screens/PaywallScreen';
 import { ApiService, JobResponse, SceneShotRef } from './src/services/api';
 import { getStableUserId } from './src/services/deviceUser';
+import { refreshPricing } from './src/services/pricing';
 
 export default function App() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
@@ -21,6 +22,10 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<'dashboard' | 'shots' | 'preview' | 'tracking' | 'studio' | 'paywall'>('dashboard');
   const [draft, setDraft] = useState<StoryDraft | null>(null);
   const [returnAfterPaywall, setReturnAfterPaywall] = useState<'dashboard' | 'shots' | 'preview'>('dashboard');
+
+  useEffect(() => {
+    void refreshPricing();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

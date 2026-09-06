@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { ApiService, StoreListing, StoreSceneShot, Storyboard } from '../services/api';
+import { creditBadgeText, getPricing, refreshPricing, subscribePricing } from '../services/pricing';
 
 export interface StoryDraft {
   source: 'store' | 'story';
@@ -46,14 +47,20 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '1:1' | '16:9'>('9:16');
   const [voiceId, setVoiceId] = useState<'en-US-Neural2-F' | 'en-US-Neural2-D'>('en-US-Neural2-F');
   const [playStoreEnabled, setPlayStoreEnabled] = useState(false);
+  const [pricing, setPricing] = useState(getPricing);
 
   useEffect(() => {
     let cancelled = false;
+    const unsub = subscribePricing(setPricing);
     void ApiService.getFeatures().then((flags) => {
       if (!cancelled) setPlayStoreEnabled(flags.playStore);
     });
+    void refreshPricing().then((next) => {
+      if (!cancelled) setPricing(next);
+    });
     return () => {
       cancelled = true;
+      unsub();
     };
   }, []);
 
@@ -157,11 +164,28 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
         </View>
         <TouchableOpacity style={styles.creditBadge} onPress={onOpenPaywall}>
           <Text style={styles.creditIcon}>⚡</Text>
-          <Text style={styles.creditText}>{credits < 1 ? 'Get credits' : `${credits} Credits`}</Text>
+          <Text style={styles.creditText}>{creditBadgeText(credits, pricing)}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {pricing.banner.enabled && Boolean(pricing.banner.message) && (
+          <TouchableOpacity
+            style={[
+              styles.homeBanner,
+              pricing.banner.tone === 'warning' && { borderColor: Colors.statusError },
+              pricing.banner.tone === 'promo' && { borderColor: Colors.accentAmber },
+            ]}
+            activeOpacity={pricing.banner.cta === 'paywall' ? 0.85 : 1}
+            onPress={pricing.banner.cta === 'paywall' ? onOpenPaywall : undefined}
+          >
+            {pricing.banner.title ? <Text style={styles.homeBannerTitle}>{pricing.banner.title}</Text> : null}
+            <Text style={styles.homeBannerBody}>{pricing.banner.message}</Text>
+            {pricing.banner.cta === 'paywall' && pricing.banner.ctaLabel ? (
+              <Text style={styles.homeBannerCta}>{pricing.banner.ctaLabel}</Text>
+            ) : null}
+          </TouchableOpacity>
+        )}
         {mode === 'store' ? (
           <>
             <Text style={styles.sectionLabel}>
@@ -189,9 +213,7 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
                 </TouchableOpacity>
               )}
             </View>
-            <Text style={styles.storyHint}>
-              We read the listing and screenshots. Planning is free. Generate uses 1 credit.
-            </Text>
+            <Text style={styles.storyHint}>{pricing.messages.dashboardHint}</Text>
           </>
         ) : (
           <>
@@ -390,6 +412,31 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 24,
+  },
+  homeBanner: {
+    backgroundColor: Colors.surfaceCard,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.accentCyan,
+    marginTop: 4,
+  },
+  homeBannerTitle: {
+    color: Colors.accentCyan,
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  homeBannerBody: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  homeBannerCta: {
+    color: Colors.accentCyan,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 8,
   },
   sectionLabel: {
     fontSize: 12,

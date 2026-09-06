@@ -3,6 +3,7 @@ import cors from 'cors';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { ENV, isPlayStoreEnabled, validateEnv } from '../config/env';
+import { getPricingSync, refreshPricing } from '../config/pricing';
 import {
   getOrCreateUser,
   createJobWithAtomicDeduction,
@@ -18,6 +19,7 @@ import { createSignedUploadUrl, uploadBufferToGcs } from '../services/storage.se
 import { VideoJobDocument } from '../types';
 
 validateEnv();
+void refreshPricing();
 
 const app = express();
 app.use(cors());
@@ -72,9 +74,19 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.get('/api/v1/features', (_req: Request, res: Response) => {
+  const pricing = getPricingSync();
   res.json({
     playStore: isPlayStoreEnabled(),
+    purchases: pricing.flags.purchasesEnabled,
+    creditPacks: pricing.flags.creditPacksEnabled,
+    subscriptions: pricing.flags.subscriptionsEnabled,
   });
+});
+
+app.get('/api/v1/pricing', async (_req: Request, res: Response): Promise<void> => {
+  const pricing = await refreshPricing();
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.json(pricing);
 });
 
 const SceneSchema = z.object({
@@ -428,7 +440,7 @@ app.post('/api/v1/jobs', async (req: Request, res: Response): Promise<void> => {
     if (error.message === 'INSUFFICIENT_CREDITS') {
       res.status(402).json({
         error: 'INSUFFICIENT_CREDITS',
-        message: 'INSUFFICIENT_CREDITS: You have used your 3 free reels. Buy a credit pack to generate another.',
+        message: `INSUFFICIENT_CREDITS: ${getPricingSync().messages.insufficientCredits}`,
       });
       return;
     }

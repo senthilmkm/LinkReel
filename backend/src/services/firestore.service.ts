@@ -1,6 +1,6 @@
 import { Firestore, FieldValue, DocumentReference } from '@google-cloud/firestore';
 import { ENV } from '../config/env';
-import { FREE_REEL_CREDITS, creditsForProduct, spendableCredits } from '../config/billing';
+import { getFreeReelCredits, creditsForProduct, spendableCredits } from '../config/billing';
 import { VideoJobDocument, UserDocument, JobStatus, JobErrorCode } from '../types';
 
 export const firestore = new Firestore({
@@ -40,7 +40,7 @@ export async function getOrCreateUser(uid: string, email: string): Promise<UserD
     uid,
     email,
     plan: 'free',
-    creditsRemaining: FREE_REEL_CREDITS,
+    creditsRemaining: getFreeReelCredits(),
     totalVideosCreated: 0,
     paidCreditsGranted: 0,
     createdAt: FieldValue.serverTimestamp(),
@@ -134,7 +134,7 @@ export async function redeemStorePurchase(params: {
         uid: params.userId,
         email: `${params.userId}@linkreel.user`,
         plan: 'starter',
-        creditsRemaining: FREE_REEL_CREDITS + creditsAdded,
+        creditsRemaining: getFreeReelCredits() + creditsAdded,
         totalVideosCreated: 0,
         paidCreditsGranted: creditsAdded,
         createdAt: FieldValue.serverTimestamp(),
@@ -160,7 +160,7 @@ export async function redeemStorePurchase(params: {
 
     const after = userDoc.exists
       ? spendableCredits(userDoc.data() as UserDocument) + creditsAdded
-      : FREE_REEL_CREDITS + creditsAdded;
+      : getFreeReelCredits() + creditsAdded;
     return { creditsRemaining: after, creditsAdded, duplicate: false };
   });
 }

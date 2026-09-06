@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-06",
+  "flags": {
+    "purchasesEnabled": true,
+    "creditPacksEnabled": true,
+    "subscriptionsEnabled": false,
+    "restorePurchasesEnabled": true,
+    "freeTierEnabled": true,
+    "showGithubLink": true,
+    "showAppleEula": true
+  },
+  "banner": {
+    "enabled": true,
+    "tone": "info",
+    "title": "3 free reels to try",
+    "message": "Planning stays free. Each Generate uses 1 credit. After 3 reels, buy a one-time pack. Not a subscription.",
+    "cta": "paywall",
+    "ctaLabel": "See packs",
+    "dismissible": false
+  },
+  "free": {
+    "id": "free",
+    "enabled": true,
+    "credits": 3,
+    "planningFree": true,
+    "title": "Free",
+    "subtitle": "Enough to try — not unlimited",
+    "description": "New installs get 3 finished reels on this iPhone. Planning the 4 scenes does not use a credit.",
+    "features": [
+      "3 finished reels",
+      "Planning stays free",
+      "Nora or Alex voiceover",
+      "Save to Photos"
+    ],
+    "limitations": [
+      "Not 10 free reels",
+      "Not unlimited",
+      "Same iPhone keeps this allotment"
+    ]
+  },
+  "creditPacks": [
+    {
+      "id": "pack_10",
+      "enabled": true,
+      "productId": "com.linkreel.credits.10",
+      "type": "consumable",
+      "credits": 10,
+      "displayPrice": "$4.99",
+      "priceUsd": 4.99,
+      "title": "10 reels",
+      "subtitle": "One-time pack · $0.50 per reel",
+      "badge": null,
+      "highlighted": false,
+      "description": "10 finished generates. Pays once. Does not auto-renew.",
+      "features": [
+        "1 credit = 1 finished reel",
+        "Unused credits stay on this iPhone",
+        "Not a subscription"
+      ]
+    },
+    {
+      "id": "pack_25",
+      "enabled": true,
+      "productId": "com.linkreel.credits.25",
+      "type": "consumable",
+      "credits": 25,
+      "displayPrice": "$9.99",
+      "priceUsd": 9.99,
+      "title": "25 reels",
+      "subtitle": "One-time pack · $0.40 per reel",
+      "badge": "Best value",
+      "highlighted": true,
+      "description": "25 finished generates. Pays once. Does not auto-renew.",
+      "features": [
+        "1 credit = 1 finished reel",
+        "Unused credits stay on this iPhone",
+        "Not a subscription"
+      ]
+    }
+  ],
+  "subscriptions": [
+    {
+      "id": "monthly",
+      "enabled": false,
+      "productId": "com.linkreel.sub.monthly",
+      "type": "auto_renewable",
+      "period": "P1M",
+      "periodLabel": "month",
+      "creditsPerPeriod": 20,
+      "displayPrice": "$7.99",
+      "priceUsd": 7.99,
+      "title": "Monthly",
+      "subtitle": "20 reels each month",
+      "badge": "Coming soon",
+      "highlighted": false,
+      "description": "Auto-renews each month until you cancel in Apple Subscriptions.",
+      "legalNote": "Payment is charged to your Apple ID at confirmation. The subscription renews unless you turn off auto-renew at least 24 hours before the period ends. Manage or cancel in Settings → Apple ID → Subscriptions.",
+      "features": [
+        "20 credits at the start of each period",
+        "Unused period credits do not roll over unless we say so here later",
+        "Cancel anytime in Apple Subscriptions"
+      ]
+    },
+    {
+      "id": "yearly",
+      "enabled": false,
+      "productId": "com.linkreel.sub.yearly",
+      "type": "auto_renewable",
+      "period": "P1Y",
+      "periodLabel": "year",
+      "creditsPerPeriod": 300,
+      "displayPrice": "$49.99",
+      "priceUsd": 49.99,
+      "title": "Yearly",
+      "subtitle": "300 reels each year",
+      "badge": "Coming soon",
+      "highlighted": false,
+      "description": "Auto-renews each year until you cancel in Apple Subscriptions.",
+      "legalNote": "Payment is charged to your Apple ID at confirmation. The subscription renews unless you turn off auto-renew at least 24 hours before the period ends. Manage or cancel in Settings → Apple ID → Subscriptions.",
+      "features": [
+        "300 credits at the start of each year",
+        "Cancel anytime in Apple Subscriptions"
+      ]
+    }
+  ],
+  "paywall": {
+    "kicker": "ONE-TIME CREDIT PACKS",
+    "headline": "Continue making reels",
+    "subheadline": "New installs get 3 free finished reels — not unlimited, and not 10. Planning the 4 scenes stays free forever. Each Generate uses 1 credit. This is not a subscription. Nothing auto-renews.",
+    "balanceLabel": "Credits left",
+    "packsSectionTitle": "Buy credits",
+    "subscriptionsSectionTitle": "Subscriptions",
+    "subscriptionsDisabledNote": "Subscriptions are off. Buy a one-time credit pack.",
+    "features": [
+      "1 credit = 1 finished reel. Planning does not use a credit",
+      "Free: 3 generates on this iPhone. Then a pack is required",
+      "$4.99 buys 10 reels. $9.99 buys 25 reels. One-time, not a subscription",
+      "Nora or Alex voiceover, captions, 1080×1920",
+      "App Store screenshots and preview video when Apple has one",
+      "Save to Photos. The in-app video link expires in 7 days"
+    ],
+    "legalBody": "Payment is charged to your Apple ID at confirmation. Prices above are USD; Apple shows and charges the price for your storefront. These are consumable In-App Purchases, not auto-renewing subscriptions. Unused credits stay on this iPhone account. Used credits cannot be restored or refunded except as Apple requires. Restore Purchases only finishes a buy that was interrupted (you were charged but credits were not added).",
+    "restoreLabel": "Restore Purchases",
+    "restoreBusyLabel": "Restoring…",
+    "restoreMessage": "Credit packs are one-time consumables. Used credits cannot be restored. Restore finishes a buy that was interrupted (Apple ID charged but credits not added). If nothing is pending, your balance stays the same.",
+    "buyUnavailableTitle": "Apple In-App Purchase",
+    "buyUnavailableMessage": "This pack will charge your Apple ID once the product is live in App Store Connect. LinkReel will not add credits without a finished Apple transaction.",
+    "purchasesOffTitle": "Buying is paused",
+    "purchasesOffMessage": "Credit packs are temporarily unavailable. Planning still works."
+  },
+  "messages": {
+    "dashboardHint": "We read the listing and screenshots. Planning is free. Generate uses 1 credit.",
+    "creditBadgeLabel": "{credits} Credits",
+    "creditBadgeEmpty": "Get credits",
+    "onboardingGenerate": "About 30 seconds, voiceover, captions. You get 3 free reels. After that, buy a one-time pack. Save to Photos — the in-app link expires in 7 days.",
+    "insufficientCredits": "You have used your 3 free reels. Buy a credit pack to generate another.",
+    "iapNotLive": "This product is not for sale yet. LinkReel will not add credits without a finished Apple transaction."
+  },
+  "legal": {
+    "termsUrl": "https://senthilmkm.github.io/LinkReel/terms.html",
+    "privacyUrl": "https://senthilmkm.github.io/LinkReel/privacy.html",
+    "appleEulaUrl": "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+    "githubUrl": "https://github.com/senthilmkm/LinkReel"
+  }
+}

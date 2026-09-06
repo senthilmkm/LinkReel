@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Colors } from '../theme/colors';
+import { getPricing } from '../services/pricing';
 
 const { width } = Dimensions.get('window');
 
@@ -25,7 +26,7 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
     {
       emoji: '🚀 ➔ 📤',
       title: 'Export a reel people actually watch',
-      description: 'About 30 seconds, voiceover, captions. You get 3 free reels. After that, buy a one-time pack. Save to Photos — the in-app link expires in 7 days.',
+      description: getPricing().messages.onboardingGenerate,
     },
   ];
 
