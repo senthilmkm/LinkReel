@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "LinkReel",
+    "slug": "linkreel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.linkreel.app",
+      "infoPlist": {
+        "NSPhotoLibraryAddUsageDescription": "LinkReel requires access to your photo library to save your generated marketing promo videos.",
+        "NSPhotoLibraryUsageDescription": "LinkReel uses your photos so you can attach the app or website screens that match each scene."
+      }
+    },
+    "android": {
+      "package": "com.linkreel.app",
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow LinkReel to attach screenshots that match each scene in your reel."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow LinkReel to save videos to your photo gallery.",
+          "savePhotosPermission": "Allow LinkReel to save videos to your photo gallery."
+        }
+      ],
+      "expo-asset",
+      "expo-font",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-audio",
+      "expo-video",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiBaseUrl": "https://linkreel-api-500289079249.us-central1.run.app",
+      "eas": {
+        "projectId": "linkreel-mobile-app"
+      }
+    }
+  }
+}

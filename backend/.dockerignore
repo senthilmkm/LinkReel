@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+npm-debug.log
+src
+*.ts
+!dist
+test_*.ts
+test_*.js
+diagnostic_frames
+*.log
+README.md
