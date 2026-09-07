@@ -26,7 +26,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Copy compiled TypeScript dist and licensed music bed
+# Copy compiled TypeScript dist (includes Apple Root CA) and licensed music bed
 COPY dist/ ./dist/
 COPY assets/ ./assets/
 

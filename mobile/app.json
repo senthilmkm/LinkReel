@@ -5,33 +5,63 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
+    "scheme": "linkreel",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#07090E"
+    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.linkreel.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSPhotoLibraryAddUsageDescription": "LinkReel requires access to your photo library to save your generated marketing promo videos.",
-        "NSPhotoLibraryUsageDescription": "LinkReel uses your photos so you can attach the app or website screens that match each scene."
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryAddUsageDescription": "LinkReel saves your finished reel to Photos so you can keep a copy.",
+        "NSPhotoLibraryUsageDescription": "LinkReel uses your photos so you can attach the app screens that match each scene."
       }
     },
     "android": {
       "package": "com.linkreel.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#07090E"
+      },
       "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.RECORD_AUDIO"
       ]
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2bebcdab-efea-4444-83ff-971a57a540f6"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "plugins": [
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow LinkReel to attach screenshots that match each scene in your reel."
+          "photosPermission": "Allow LinkReel to attach screenshots that match each scene in your reel.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ],
       [
         "expo-media-library",
         {
           "photosPermission": "Allow LinkReel to save videos to your photo gallery.",
-          "savePhotosPermission": "Allow LinkReel to save videos to your photo gallery."
+          "savePhotosPermission": "Allow LinkReel to save videos to your photo gallery.",
+          "isAccessMediaLocationEnabled": false
         }
       ],
       "expo-asset",
@@ -40,13 +70,16 @@
       "expo-status-bar",
       "expo-audio",
       "expo-video",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-iap",
+      "expo-updates"
     ],
     "extra": {
       "apiBaseUrl": "https://linkreel-api-500289079249.us-central1.run.app",
       "eas": {
-        "projectId": "linkreel-mobile-app"
+        "projectId": "2bebcdab-efea-4444-83ff-971a57a540f6"
       }
-    }
+    },
+    "owner": "senthil930"
   }
 }

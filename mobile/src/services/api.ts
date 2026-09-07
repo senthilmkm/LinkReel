@@ -203,8 +203,8 @@ export const ApiService = {
   async confirmPurchase(params: {
     userId: string;
     productId: 'com.linkreel.credits.10' | 'com.linkreel.credits.25';
-    transactionId: string;
-  }): Promise<{ creditsRemaining: number; creditsAdded: number }> {
+    signedTransaction: string;
+  }): Promise<{ creditsRemaining: number; creditsAdded: number; duplicate?: boolean }> {
     const res = await fetch(`${Config.api.baseUrl}/api/v1/purchases/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

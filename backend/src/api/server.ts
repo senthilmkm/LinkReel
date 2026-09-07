@@ -7,6 +7,7 @@ import { getPricingSync, refreshPricing } from '../config/pricing';
 import {
   getOrCreateUser,
   createJobWithAtomicDeduction,
+  redeemStorePurchase,
   firestore,
   JOBS_COLLECTION,
 } from '../services/firestore.service';
@@ -17,6 +18,7 @@ import { lookupStoreListing } from '../services/play-store.service';
 import { matchStoreShots } from '../services/store-match.service';
 import { createSignedUploadUrl, uploadBufferToGcs } from '../services/storage.service';
 import { VideoJobDocument } from '../types';
+import { AppleIapError, verifyAppleSignedTransaction } from '../services/apple-iap';
 
 validateEnv();
 void refreshPricing();
@@ -498,11 +500,45 @@ app.post('/api/v1/users/:uid/credits', (_req: Request, res: Response): void => {
   });
 });
 
-app.post('/api/v1/purchases/confirm', (_req: Request, res: Response): void => {
-  res.status(403).json({
-    error: 'APPLE_VERIFY_REQUIRED',
-    message: 'Credits are added only after Apple confirms the In-App Purchase. A raw transaction id is not enough.',
-  });
+const ConfirmPurchaseSchema = z.object({
+  userId: z.string().min(3).max(80),
+  productId: z.enum(['com.linkreel.credits.10', 'com.linkreel.credits.25']),
+  signedTransaction: z.string().min(80).max(20000),
+});
+
+app.post('/api/v1/purchases/confirm', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const parsed = ConfirmPurchaseSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'VALIDATION_ERROR', details: parsed.error.errors });
+      return;
+    }
+    const { userId, productId, signedTransaction } = parsed.data;
+    const apple = verifyAppleSignedTransaction(signedTransaction, productId);
+    await getOrCreateUser(userId, `${userId}@linkreel.user`);
+    const result = await redeemStorePurchase({
+      userId,
+      productId: apple.productId,
+      transactionId: apple.transactionId,
+    });
+    res.json({
+      creditsRemaining: result.creditsRemaining,
+      creditsAdded: result.creditsAdded,
+      duplicate: result.duplicate,
+      environment: apple.environment,
+    });
+  } catch (error: any) {
+    const msg = String(error.message || '');
+    if (error instanceof AppleIapError || msg === 'UNKNOWN_PRODUCT' || msg === 'INVALID_TRANSACTION') {
+      res.status(400).json({
+        error: 'APPLE_IAP_INVALID',
+        message: msg === 'UNKNOWN_PRODUCT' ? 'That product is not a LinkReel credit pack.' : error.message,
+      });
+      return;
+    }
+    console.error('[API Error /purchases/confirm]', error);
+    res.status(500).json({ error: 'PURCHASE_CONFIRM_FAILED', message: 'Could not add those credits. Try Restore Purchases.' });
+  }
 });
 
 app.use((err: any, _req: Request, res: Response, next: any) => {

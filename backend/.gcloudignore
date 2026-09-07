@@ -1,0 +1,16 @@
+# Cloud Run uploads this folder as the Docker build context.
+.git
+.gitignore
+.gcloudignore
+node_modules
+.env
+.env.*
+*.log
+tests
+diagnostic_frames
+diagnostic_output
+**/*.md
+**/*.mp4
+**/*.mov
+src
+scripts

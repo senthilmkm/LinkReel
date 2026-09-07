@@ -54,7 +54,8 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
   const restore = async () => {
     setBusy('restore');
     try {
-      await IapService.restorePurchases(userId);
+      const result = await IapService.restorePurchases(userId);
+      if (result) onCreditsChanged(result.creditsRemaining);
     } finally {
       setBusy(null);
     }

@@ -4,7 +4,7 @@
   "description": "LinkReel AI Video Generation Backend Service",
   "main": "dist/api/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-certs.js",
     "start": "node dist/api/server.js",
     "dev": "ts-node src/api/server.ts",
     "promo": "ts-node test_promo_video.ts",
@@ -25,12 +25,14 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@peculiar/x509": "^2.1.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.13.5",
     "jest": "^29.7.0",
+    "reflect-metadata": "^0.2.2",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"

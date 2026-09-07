@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Alert } from 'react-native';
 import { registerRootComponent } from 'expo';
@@ -12,12 +13,15 @@ import { VideoStudioScreen } from './src/screens/VideoStudioScreen';
 import { PaywallScreen } from './src/screens/PaywallScreen';
 import { ApiService, JobResponse, SceneShotRef, Storyboard } from './src/services/api';
 import { getStableUserId } from './src/services/deviceUser';
+import { IapService } from './src/services/iap';
 import { refreshPricing } from './src/services/pricing';
 import { CAPTION_STYLES } from './src/config/captionStyles';
 import { MUSIC_TRACKS } from './src/config/musicTracks';
 
+const ONBOARDING_KEY = 'linkreel_seen_onboarding';
+
 export default function App() {
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
   const [credits, setCredits] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<JobResponse | null>(null);
@@ -31,6 +35,18 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    void SecureStore.getItemAsync(ONBOARDING_KEY).then((value) => {
+      if (!cancelled) setHasSeenOnboarding(value === '1');
+    }).catch(() => {
+      if (!cancelled) setHasSeenOnboarding(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
     void getStableUserId().then(async (id) => {
       if (cancelled) return;
       setUserId(id);
@@ -39,6 +55,12 @@ export default function App() {
         if (!cancelled) setCredits(data.creditsRemaining);
       } catch {
         if (!cancelled) setCredits(0);
+      }
+      try {
+        const pending = await IapService.syncUnfinished(id);
+        if (!cancelled && pending) setCredits(pending.creditsRemaining);
+      } catch {
+        // StoreKit only exists on a real iOS build.
       }
     });
     return () => {
@@ -153,17 +175,22 @@ export default function App() {
     }
   };
 
+  if (hasSeenOnboarding === null || !userId) {
+    return <View style={styles.container}><StatusBar style="light" /></View>;
+  }
+
   if (!hasSeenOnboarding) {
     return (
       <View style={styles.container}>
         <StatusBar style="light" />
-        <OnboardingScreen onComplete={() => setHasSeenOnboarding(true)} />
+        <OnboardingScreen
+          onComplete={() => {
+            setHasSeenOnboarding(true);
+            void SecureStore.setItemAsync(ONBOARDING_KEY, '1');
+          }}
+        />
       </View>
     );
-  }
-
-  if (!userId) {
-    return <View style={styles.container}><StatusBar style="light" /></View>;
   }
 
   return (
