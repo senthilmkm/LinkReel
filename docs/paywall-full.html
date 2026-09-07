@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=390" />
+  <title>LinkReel paywall</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #07090E;
+      color: #F9FAFB;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .phone {
+      width: 390px;
+      margin: 0 auto;
+      background: #07090E;
+      padding: 12px 0 20px;
+    }
+    .header { padding: 0 20px 0; }
+    .close {
+      width: 32px;
+      height: 32px;
+      border-radius: 16px;
+      background: #121622;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .content { padding: 12px 24px 24px; }
+    .kicker {
+      color: #F59E0B;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0 0 10px;
+    }
+    .sub {
+      font-size: 15px;
+      color: #94A3B8;
+      line-height: 22px;
+      margin: 0 0 16px;
+    }
+    .banner {
+      background: #121622;
+      border: 1px solid #06B6D4;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .banner h2 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #06B6D4;
+    }
+    .banner p { margin: 0; color: #94A3B8; font-size: 13px; line-height: 19px; }
+    .balance {
+      background: #121622;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .balance span { color: #94A3B8; font-size: 14px; font-weight: 600; }
+    .balance strong { font-size: 22px; font-weight: 800; }
+    .section {
+      color: #64748B;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      margin: 4px 0 8px;
+      text-transform: none;
+    }
+    .pack {
+      background: #121622;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .pack.hi { border-color: #6366F1; }
+    .pack h3 { margin: 0; font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .badge { color: #F59E0B; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .pack .subline { color: #94A3B8; font-size: 13px; margin-top: 4px; }
+    .pack .desc { color: #64748B; font-size: 12px; margin-top: 4px; line-height: 17px; }
+    .price { color: #06B6D4; font-size: 18px; font-weight: 800; white-space: nowrap; }
+    .note { color: #94A3B8; font-size: 13px; line-height: 19px; margin: 0 0 12px; }
+    .features {
+      margin-top: 10px;
+      background: #121622;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 16px;
+    }
+    .feat { display: flex; gap: 8px; margin-bottom: 10px; }
+    .feat:last-child { margin-bottom: 0; }
+    .feat .mark { color: #94A3B8; font-size: 14px; }
+    .feat p { margin: 0; color: #F9FAFB; font-size: 14px; font-weight: 600; line-height: 20px; }
+    .legal {
+      margin: 16px 0 0;
+      font-size: 12px;
+      line-height: 18px;
+      color: #64748B;
+    }
+    .footer { padding: 8px 24px 8px; text-align: center; }
+    .restore { color: #F9FAFB; font-size: 15px; font-weight: 700; padding: 10px 0; }
+    .links { color: #06B6D4; font-size: 13px; font-weight: 600; margin-top: 4px; }
+    .dot { color: #64748B; font-weight: 400; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="header"><div class="close">✕</div></div>
+    <div class="content">
+      <div class="kicker">ONE-TIME CREDIT PACKS</div>
+      <h1>Continue making reels</h1>
+      <p class="sub">New installs get 3 free finished reels — not unlimited, and not 10. Planning the 4 scenes stays free forever. Each Generate uses 1 credit. This is not a subscription. Nothing auto-renews.</p>
+
+      <div class="banner">
+        <h2>3 free reels to try</h2>
+        <p>Planning stays free. Each Generate uses 1 credit. After 3 reels, buy a one-time pack. Not a subscription.</p>
+      </div>
+
+      <div class="balance">
+        <span>Credits left</span>
+        <strong>0</strong>
+      </div>
+
+      <div class="section">Buy credits</div>
+      <div class="pack">
+        <div>
+          <h3>10 reels</h3>
+          <div class="subline">One-time pack · $0.50 per reel</div>
+          <div class="desc">10 finished generates. Pays once. Does not auto-renew.</div>
+        </div>
+        <div class="price">$4.99</div>
+      </div>
+      <div class="pack hi">
+        <div>
+          <h3>25 reels <span class="badge">Best value</span></h3>
+          <div class="subline">One-time pack · $0.40 per reel</div>
+          <div class="desc">25 finished generates. Pays once. Does not auto-renew.</div>
+        </div>
+        <div class="price">$9.99</div>
+      </div>
+
+      <p class="note">Subscriptions are off. Buy a one-time credit pack.</p>
+
+      <div class="features">
+        <div class="feat"><span class="mark">•</span><p>1 credit = 1 finished reel. Planning does not use a credit</p></div>
+        <div class="feat"><span class="mark">•</span><p>Free: 3 generates on this iPhone. Then a pack is required</p></div>
+        <div class="feat"><span class="mark">•</span><p>$4.99 buys 10 reels. $9.99 buys 25 reels. One-time, not a subscription</p></div>
+        <div class="feat"><span class="mark">•</span><p>Nora or Alex voiceover, captions, 1080×1920</p></div>
+        <div class="feat"><span class="mark">•</span><p>App Store screenshots and preview video when Apple has one</p></div>
+        <div class="feat"><span class="mark">•</span><p>Save to Photos. The in-app video link expires in 7 days</p></div>
+      </div>
+
+      <p class="legal">Payment is charged to your Apple ID at confirmation. Prices above are USD; Apple shows and charges the price for your storefront. These are consumable In-App Purchases, not auto-renewing subscriptions. Unused credits stay on this iPhone account. Used credits cannot be restored or refunded except as Apple requires. Restore Purchases only finishes a buy that was interrupted (you were charged but credits were not added).</p>
+    </div>
+    <div class="footer">
+      <div class="restore">Restore Purchases</div>
+      <div class="links">
+        Support <span class="dot">·</span>
+        Terms of Use <span class="dot">·</span>
+        Privacy Policy <span class="dot">·</span>
+        Apple EULA
+      </div>
+    </div>
+  </div>
+</body>
+</html>

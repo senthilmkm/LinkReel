@@ -7,17 +7,25 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { SceneShotRef, StoreListing, StoreSceneShot, Storyboard } from '../services/api';
+import { SceneCopyFields } from '../components/SceneCopyFields';
+import { scriptReadyMessage, withSceneCopy } from '../utils/storyboardEdits';
 
 interface Props {
   productName?: string;
   listing: StoreListing;
   storyboard: Storyboard;
   assignedShots: StoreSceneShot[];
+  captionStyleLabel?: string;
+  musicLabel?: string;
   onBack: () => void;
-  onGenerate: (shots: SceneShotRef[]) => void;
+  onScriptChange?: (storyboard: Storyboard) => void;
+  onGenerate: (shots: SceneShotRef[], storyboard: Storyboard) => void;
 }
 
 export const StorePreviewScreen: React.FC<Props> = ({
@@ -25,7 +33,10 @@ export const StorePreviewScreen: React.FC<Props> = ({
   listing,
   storyboard,
   assignedShots,
+  captionStyleLabel,
+  musicLabel,
   onBack,
+  onScriptChange,
   onGenerate,
 }) => {
   const shots = listing.screenshotUrls || [];
@@ -37,8 +48,15 @@ export const StorePreviewScreen: React.FC<Props> = ({
     return map;
   }, [assignedShots]);
 
+  const [board, setBoard] = useState(storyboard);
   const [picked, setPicked] = useState<Record<number, number | null>>(initial);
   const [pickerFor, setPickerFor] = useState<number | null>(null);
+
+  const updateScene = (sceneId: number, patch: { caption?: string; narrationText?: string }) => {
+    const next = withSceneCopy(board, sceneId, patch);
+    setBoard(next);
+    onScriptChange?.(next);
+  };
 
   const choose = (sceneId: number, imageIndex: number) => {
     setPicked((prev) => ({ ...prev, [sceneId]: imageIndex }));
@@ -51,18 +69,26 @@ export const StorePreviewScreen: React.FC<Props> = ({
   };
 
   const handleGenerate = () => {
-    const sceneShots: SceneShotRef[] = [1, 2, 3, 4]
-      .map((sceneId) => {
-        const idx = picked[sceneId];
-        if (idx === null || idx === undefined || !shots[idx]) return null;
-        return { sceneId, imageUrl: shots[idx] };
-      })
-      .filter((s): s is SceneShotRef => Boolean(s));
-    onGenerate(sceneShots);
+    const blocked = scriptReadyMessage(board);
+    if (blocked) {
+      Alert.alert('Fix the words first', blocked);
+      return;
+    }
+    const sceneShots: SceneShotRef[] = [];
+    for (const sceneId of [1, 2, 3, 4]) {
+      const idx = picked[sceneId];
+      if (idx === null || idx === undefined || !shots[idx]) continue;
+      sceneShots.push({ sceneId, imageUrl: shots[idx] });
+    }
+    onGenerate(sceneShots, board);
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}>
           <Text style={styles.back}>‹ Back</Text>
@@ -71,7 +97,11 @@ export const StorePreviewScreen: React.FC<Props> = ({
         <View style={{ width: 48 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.hint}>
           {listing.previewVideoUrls && listing.previewVideoUrls.length > 0 ? (
             <>
@@ -80,17 +110,25 @@ export const StorePreviewScreen: React.FC<Props> = ({
           ) : (
             'We matched a listing screen to each scene. Extra iPhone screens from the listing also play in the reel. Change or skip only if one is wrong.'
           )}
+          {' Tap a caption or voice line to fix it — free until you generate.'}
+          {captionStyleLabel ? ` Caption style: ${captionStyleLabel}.` : ''}
+          {musicLabel ? ` Music: ${musicLabel}.` : ''}
         </Text>
 
-        {storyboard.scenes.map((scene) => {
+        {board.scenes.map((scene) => {
           const idx = picked[scene.id];
           const imageUrl = idx !== null && idx !== undefined ? shots[idx] : undefined;
           const open = pickerFor === scene.id;
           return (
             <View key={scene.id} style={styles.card}>
               <Text style={styles.kicker}>Scene {scene.id}</Text>
-              <Text style={styles.caption}>{scene.caption}</Text>
-              <Text style={styles.narration} numberOfLines={3}>{scene.narrationText}</Text>
+              <SceneCopyFields
+                compact
+                caption={scene.caption}
+                narration={scene.narrationText}
+                onCaptionChange={(value) => updateScene(scene.id, { caption: value })}
+                onNarrationChange={(value) => updateScene(scene.id, { narrationText: value })}
+              />
 
               <TouchableOpacity
                 activeOpacity={0.9}
@@ -142,6 +180,7 @@ export const StorePreviewScreen: React.FC<Props> = ({
           <Text style={styles.generateText}>Generate my reel · 1 credit</Text>
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -174,10 +213,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  caption: { color: Colors.textPrimary, fontSize: 18, fontWeight: '800', marginBottom: 6 },
-  narration: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, marginBottom: 10 },
   shot: {
     width: '100%',
     height: 220,

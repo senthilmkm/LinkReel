@@ -147,6 +147,9 @@ const CreateJobSchema = z.object({
   aspectRatio: z.enum(['9:16', '1:1', '16:9']).default('9:16'),
   stylePreset: z.enum(['saas_dark', 'ecommerce_punchy', 'minimal_editorial']).default('saas_dark'),
   voiceId: z.enum(['en-US-Neural2-F', 'en-US-Neural2-D']).default('en-US-Neural2-F'),
+  captionStyle: z.enum(['bold_center', 'bottom_bar', 'word_highlight', 'minimal']).default('bold_center'),
+  musicTrack: z.enum(['none', 'pulse', 'warm', 'drive', 'lift', 'night']).default('pulse'),
+  musicVolume: z.enum(['quiet', 'medium', 'loud']).default('medium'),
 });
 
 app.post('/api/v1/storyboard/plan', async (req: Request, res: Response): Promise<void> => {
@@ -393,6 +396,9 @@ app.post('/api/v1/jobs', async (req: Request, res: Response): Promise<void> => {
       aspectRatio: data.aspectRatio,
       stylePreset: data.stylePreset,
       voiceId: data.voiceId,
+      captionStyle: data.captionStyle,
+      musicTrack: data.musicTrack,
+      musicVolume: data.musicVolume,
     });
 
     if (isDuplicate) {
@@ -418,6 +424,9 @@ app.post('/api/v1/jobs', async (req: Request, res: Response): Promise<void> => {
       aspectRatio: data.aspectRatio,
       stylePreset: data.stylePreset,
       voiceId: data.voiceId,
+      captionStyle: data.captionStyle,
+      musicTrack: data.musicTrack,
+      musicVolume: data.musicVolume,
       status: 'queued',
       progress: 5,
       createdAt: new Date(),

@@ -14,6 +14,8 @@ import {
 import { Colors } from '../theme/colors';
 import { ApiService, StoreListing, StoreSceneShot, Storyboard } from '../services/api';
 import { creditBadgeText, getPricing, refreshPricing, subscribePricing } from '../services/pricing';
+import { CAPTION_STYLES, CaptionStyleId } from '../config/captionStyles';
+import { MUSIC_TRACKS, MUSIC_VOLUMES, MusicTrackId, MusicVolumeId } from '../config/musicTracks';
 
 export interface StoryDraft {
   source: 'store' | 'story';
@@ -24,6 +26,9 @@ export interface StoryDraft {
   aspectRatio: '9:16' | '1:1' | '16:9';
   stylePreset: 'saas_dark' | 'ecommerce_punchy' | 'minimal_editorial';
   voiceId: 'en-US-Neural2-F' | 'en-US-Neural2-D';
+  captionStyle: CaptionStyleId;
+  musicTrack: MusicTrackId;
+  musicVolume: MusicVolumeId;
   storyboard: Storyboard;
   listing?: StoreListing;
   assignedShots?: StoreSceneShot[];
@@ -46,6 +51,9 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
   const [planning, setPlanning] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '1:1' | '16:9'>('9:16');
   const [voiceId, setVoiceId] = useState<'en-US-Neural2-F' | 'en-US-Neural2-D'>('en-US-Neural2-F');
+  const [captionStyle, setCaptionStyle] = useState<CaptionStyleId>('bold_center');
+  const [musicTrack, setMusicTrack] = useState<MusicTrackId>('pulse');
+  const [musicVolume, setMusicVolume] = useState<MusicVolumeId>('medium');
   const [playStoreEnabled, setPlayStoreEnabled] = useState(false);
   const [pricing, setPricing] = useState(getPricing);
 
@@ -68,6 +76,9 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
     aspectRatio,
     stylePreset: 'saas_dark' as const,
     voiceId,
+    captionStyle,
+    musicTrack,
+    musicVolume,
   };
 
   const handleStorePlan = async () => {
@@ -329,6 +340,65 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
             </Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.sectionLabel}>CAPTION STYLE</Text>
+        <View style={styles.choiceRow}>
+          {CAPTION_STYLES.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.choiceCard, styles.flexChoice, captionStyle === item.id && styles.activeCard]}
+              onPress={() => setCaptionStyle(item.id)}
+            >
+              <Text
+                style={[styles.choiceTitle, captionStyle === item.id && styles.activeText]}
+                numberOfLines={1}
+              >
+                {item.title}
+              </Text>
+              <Text style={styles.choiceSub} numberOfLines={1}>
+                {item.sub}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.sectionLabel}>MUSIC</Text>
+        {[0, 1].map((row) => (
+          <View key={row} style={[styles.choiceRow, row > 0 && { marginTop: 6 }]}>
+            {MUSIC_TRACKS.slice(row * 3, row * 3 + 3).map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.choiceCard, styles.flexChoice, musicTrack === item.id && styles.activeCard]}
+                onPress={() => setMusicTrack(item.id)}
+              >
+                <Text
+                  style={[styles.choiceTitle, musicTrack === item.id && styles.activeText]}
+                  numberOfLines={1}
+                >
+                  {item.title}
+                </Text>
+                <Text style={styles.choiceSub} numberOfLines={1}>
+                  {item.sub}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
+        {musicTrack !== 'none' && (
+          <View style={[styles.voiceContainer, { marginTop: 8 }]}>
+            {MUSIC_VOLUMES.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.voicePill, musicVolume === item.id && styles.activeCard]}
+                onPress={() => setMusicVolume(item.id)}
+              >
+                <Text style={[styles.voiceText, musicVolume === item.id && styles.activeText]}>
+                  {item.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -569,6 +639,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.textSecondary,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  choiceCard: {
+    backgroundColor: Colors.surfaceCard,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    alignItems: 'center',
+  },
+  flexChoice: {
+    flex: 1,
+  },
+  choiceTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  choiceSub: {
+    fontSize: 9,
+    color: Colors.textMuted,
+    marginTop: 1,
   },
   activeCard: {
     borderColor: Colors.accentIndigo,

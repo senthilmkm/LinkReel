@@ -52,6 +52,9 @@ export interface CreateJobParams {
   aspectRatio: '9:16' | '1:1' | '16:9';
   stylePreset: 'saas_dark' | 'ecommerce_punchy' | 'minimal_editorial';
   voiceId: 'en-US-Neural2-F' | 'en-US-Neural2-D';
+  captionStyle?: 'bold_center' | 'bottom_bar' | 'word_highlight' | 'minimal';
+  musicTrack?: 'none' | 'pulse' | 'warm' | 'drive' | 'lift' | 'night';
+  musicVolume?: 'quiet' | 'medium' | 'loud';
 }
 
 export interface JobResponse {

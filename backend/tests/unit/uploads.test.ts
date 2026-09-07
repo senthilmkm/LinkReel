@@ -43,10 +43,20 @@ describe('Storyboard normalize + fallback shots', () => {
     expect(board.scenes[2].shotPrompt).toMatch(/Upload|screen/i);
   });
 
-  it('fallback storyboard asks for a product shot on scene 3', () => {
-    const board = storyboardService.generateFallbackStoryboard(branding, 'saas_dark', 'You sit and watch the price all day.');
-    expect(board.scenes).toHaveLength(4);
-    expect(board.scenes[2].shotKind).toBe('product_shot');
-    expect(board.scenes[0].shotKind).toBe('caption_card');
+  it('keeps user-edited captions, voice lines, and voiceover on a locked script', () => {
+    const board = normalizeStoryboard({
+      hook: 'Meet Predict',
+      fullNarration: 'You set the rules once. Then you walk away.',
+      scenes: [
+        { id: 1, durationSec: 4, caption: 'SET RULES ONCE', narrationText: 'You set the rules once.', assetType: 'screenshot_hero', motionEffect: 'zoom_in' },
+        { id: 2, durationSec: 8, caption: 'STOP STARING', narrationText: 'Stop staring at the book.', assetType: 'screenshot_feature', motionEffect: 'zoom_in' },
+        { id: 3, durationSec: 12, caption: 'WALK AWAY', narrationText: 'Predict fills when your cushion hits.', assetType: 'screenshot_hero', motionEffect: 'pan_down' },
+        { id: 4, durationSec: 6, caption: 'TRY PREDICT', narrationText: 'Then you walk away.', assetType: 'brand_card', motionEffect: 'zoom_in' },
+      ] as any,
+    }, branding);
+
+    expect(board.scenes[0].caption).toBe('SET RULES ONCE');
+    expect(board.scenes[2].narrationText).toBe('Predict fills when your cushion hits.');
+    expect(board.fullNarration).toBe('You set the rules once. Then you walk away.');
   });
 });

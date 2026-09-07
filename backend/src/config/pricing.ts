@@ -101,6 +101,7 @@ export interface PricingConfig {
   legal: {
     termsUrl: string;
     privacyUrl: string;
+    supportUrl: string;
     appleEulaUrl: string;
     githubUrl: string;
   };
@@ -247,6 +248,7 @@ export function sanitizePricing(raw: unknown, base: PricingConfig = FALLBACK_PRI
     legal: {
       termsUrl: asStr(r.legal.termsUrl, base.legal.termsUrl),
       privacyUrl: asStr(r.legal.privacyUrl, base.legal.privacyUrl),
+      supportUrl: asStr(r.legal.supportUrl, base.legal.supportUrl),
       appleEulaUrl: asStr(r.legal.appleEulaUrl, base.legal.appleEulaUrl),
       githubUrl: asStr(r.legal.githubUrl, base.legal.githubUrl),
     },

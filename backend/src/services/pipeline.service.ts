@@ -19,7 +19,7 @@ import { VideoJobDocument, JobErrorCode, ScrapedBranding } from '../types';
 
 export class VideoPipelineCoordinator {
   async executeJob(job: VideoJobDocument): Promise<void> {
-    const { id: jobId, inputUrl, stylePreset, voiceId, aspectRatio } = job;
+    const { id: jobId, inputUrl, stylePreset, voiceId, aspectRatio, captionStyle, musicTrack, musicVolume } = job;
     const hasShots = Boolean(job.sceneShots && job.sceneShots.length > 0);
     const shouldScrape = job.enableWebScraping === true && !hasShots && !isPlaceholderUrl(inputUrl);
     let scrapedBranding: ScrapedBranding;
@@ -115,6 +115,9 @@ export class VideoPipelineCoordinator {
         audioResult,
         aspectRatio,
         sceneClips: withPreview,
+        captionStyle,
+        musicTrack,
+        musicVolume,
       });
 
       if (!videoRendererService.isValidMp4(renderResult.outputVideoPath)) {

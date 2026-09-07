@@ -2,8 +2,9 @@ import { createCanvas, loadImage } from 'canvas';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { AspectRatio, AudioSynthesisResult, ScrapedBranding, Storyboard } from '../types';
-import { buildVoiceMusicMixFilter, resolveMusicBedPath } from './music-bed';
+import { AspectRatio, AudioSynthesisResult, CaptionStyle, MusicTrackId, MusicVolumeId, ScrapedBranding, Storyboard } from '../types';
+import { normalizeCaptionStyle } from '../config/caption-style';
+import { buildVoiceMusicMixFilter, resolveMusicBedPath, volumeForLevel } from './music-bed';
 import { formatStoreProof } from './app-store.service';
 
 /** Predict iOS tokens from ForesightApp/src/theme/tokens.ts */
@@ -38,6 +39,9 @@ export interface RenderOptions {
     videoStartSec?: number;
     videoSliceSec?: number;
   }>;
+  captionStyle?: CaptionStyle;
+  musicTrack?: MusicTrackId;
+  musicVolume?: MusicVolumeId;
 }
 
 export interface RenderResult {
@@ -58,6 +62,7 @@ export class VideoRendererService {
 
   async renderVideo(options: RenderOptions): Promise<RenderResult> {
     const { jobId, branding, storyboard, audioResult, aspectRatio, outputDir, sceneShotPaths, sceneClips } = options;
+    const captionStyle = normalizeCaptionStyle(options.captionStyle);
     const clips: Array<{
       sceneIndex: number;
       shotPath?: string;
@@ -86,6 +91,7 @@ export class VideoRendererService {
           outputPath: framePath,
           shotPath: clips[i].shotPath,
           overlayOnly: Boolean(clips[i].videoPath),
+          captionStyle,
         });
         framePaths.push(framePath);
         console.log(`[VideoRenderer] Frame ${i + 1}/${clips.length} rendered: ${framePath}`);
@@ -99,6 +105,8 @@ export class VideoRendererService {
         audioBuffer: audioResult.audioBuffer,
         targetDir,
         resolution,
+        musicTrack: options.musicTrack,
+        musicVolume: options.musicVolume,
       });
 
       if (!this.isValidMp4(outputVideoPath)) {
@@ -155,8 +163,10 @@ export class VideoRendererService {
     outputPath: string;
     shotPath?: string;
     overlayOnly?: boolean;
+    captionStyle?: CaptionStyle;
   }) {
     const { sceneIndex, resolution, branding, storyboard, outputPath, shotPath, overlayOnly } = params;
+    const captionStyle = normalizeCaptionStyle(params.captionStyle);
     const { width, height } = resolution;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -175,6 +185,7 @@ export class VideoRendererService {
         primaryColor,
         accentColor,
         branding,
+        captionStyle,
       });
       fs.writeFileSync(outputPath, canvas.toBuffer('image/png'));
       return;
@@ -199,14 +210,17 @@ export class VideoRendererService {
     const userShot = await this.tryLoadShot(shotPath);
 
     if (sceneIndex === 0) {
-      this.drawKicker(ctx, width / 2, 88, `${productName.toUpperCase().slice(0, 18)}  ·  PROMO`);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 54px sans-serif';
-      this.drawWrappedText(ctx, scene?.caption || 'STILL STUCK IN THE LOOP?', width / 2, 150, width - 100, 62);
-      ctx.fillStyle = P.secondary;
-      ctx.font = '22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(scene?.narrationText?.slice(0, 64) || 'The old job, in one line.', width / 2, 300);
+      this.drawSceneCaption(ctx, {
+        style: captionStyle,
+        caption: scene?.caption || 'STILL STUCK IN THE LOOP?',
+        narrationText: scene?.narrationText || 'The old job, in one line.',
+        kicker: `${productName.toUpperCase().slice(0, 18)}  ·  PROMO`,
+        width,
+        height,
+        sceneIndex,
+        accentColor,
+        overlayOnly: false,
+      });
 
       this.drawIPhone(ctx, phone);
       if (userShot) {
@@ -218,10 +232,16 @@ export class VideoRendererService {
       }
 
     } else if (sceneIndex === 1) {
-      this.drawKicker(ctx, width / 2, 88, 'THE OLD LOOP');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 50px sans-serif';
-      this.drawWrappedText(ctx, scene?.caption || 'SIT. STARE. TAP. MISS.', width / 2, 150, width - 100, 58);
+      this.drawSceneCaption(ctx, {
+        style: captionStyle,
+        caption: scene?.caption || 'SIT. STARE. TAP. MISS.',
+        kicker: 'THE OLD LOOP',
+        width,
+        height,
+        sceneIndex,
+        accentColor,
+        overlayOnly: false,
+      });
 
       if (userShot) {
         this.drawIPhone(ctx, phone);
@@ -242,14 +262,17 @@ export class VideoRendererService {
       }
 
     } else if (sceneIndex === 2) {
-      this.drawKicker(ctx, width / 2, 88, 'THE FIX');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 50px sans-serif';
-      this.drawWrappedText(ctx, scene?.caption || 'SET IT. STAY COOL.', width / 2, 150, width - 100, 58);
-      ctx.fillStyle = P.secondary;
-      ctx.font = '22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(scene?.narrationText?.slice(0, 72) || `${productName} takes the next step.`, width / 2, 300);
+      this.drawSceneCaption(ctx, {
+        style: captionStyle,
+        caption: scene?.caption || 'SET IT. STAY COOL.',
+        narrationText: scene?.narrationText || `${productName} takes the next step.`,
+        kicker: 'THE FIX',
+        width,
+        height,
+        sceneIndex,
+        accentColor,
+        overlayOnly: false,
+      });
 
       this.drawIPhone(ctx, phone);
       if (userShot) {
@@ -261,10 +284,16 @@ export class VideoRendererService {
       }
 
     } else {
-      this.drawKicker(ctx, width / 2, 88, 'START FREE');
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '800 50px sans-serif';
-      this.drawWrappedText(ctx, scene?.caption || `TRY ${productName.toUpperCase()} TODAY`, width / 2, 150, width - 100, 58);
+      this.drawSceneCaption(ctx, {
+        style: captionStyle,
+        caption: scene?.caption || `TRY ${productName.toUpperCase()} TODAY`,
+        kicker: 'START FREE',
+        width,
+        height,
+        sceneIndex,
+        accentColor,
+        overlayOnly: false,
+      });
 
       this.drawIPhone(ctx, { ...phone, y: phone.y - 20 });
       if (userShot) {
@@ -323,25 +352,27 @@ export class VideoRendererService {
       primaryColor: string;
       accentColor: string;
       branding: ScrapedBranding;
+      captionStyle?: CaptionStyle;
     }
   ) {
     const { sceneIndex, width, height, productName, scene, primaryColor, accentColor, branding } = params;
-    const top = ctx.createLinearGradient(0, 0, 0, 340);
-    top.addColorStop(0, 'rgba(7,10,16,0.82)');
-    top.addColorStop(1, 'rgba(7,10,16,0)');
-    ctx.fillStyle = top;
-    ctx.fillRect(0, 0, width, 340);
-
     const kickers = [
       `${productName.toUpperCase().slice(0, 18)}  ·  PROMO`,
       'THE OLD LOOP',
       'THE FIX',
       'START FREE',
     ];
-    this.drawKicker(ctx, width / 2, 88, kickers[sceneIndex] || kickers[0]);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '800 50px sans-serif';
-    this.drawWrappedText(ctx, scene?.caption || 'WATCH THIS', width / 2, 150, width - 100, 58);
+    this.drawSceneCaption(ctx, {
+      style: normalizeCaptionStyle(params.captionStyle),
+      caption: scene?.caption || 'WATCH THIS',
+      narrationText: scene?.narrationText,
+      kicker: kickers[sceneIndex] || kickers[0],
+      width,
+      height,
+      sceneIndex,
+      accentColor,
+      overlayOnly: true,
+    });
 
     if (sceneIndex === 3) {
       await this.drawStoreProofCta(ctx, {
@@ -426,6 +457,117 @@ export class VideoRendererService {
     ctx.font = '700 18px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(text, x, y);
+  }
+
+  private drawSceneCaption(
+    ctx: any,
+    params: {
+      style: CaptionStyle;
+      caption: string;
+      narrationText?: string;
+      kicker: string;
+      width: number;
+      height: number;
+      sceneIndex: number;
+      accentColor: string;
+      overlayOnly: boolean;
+    }
+  ) {
+    const { style, caption, narrationText, kicker, width, height, sceneIndex, accentColor, overlayOnly } = params;
+    const text = caption || 'WATCH THIS';
+
+    if (style === 'bottom_bar') {
+      const barH = sceneIndex === 3 ? 150 : 200;
+      const barY = sceneIndex === 3 ? height - 430 : height - barH - 36;
+      if (overlayOnly) {
+        const veil = ctx.createLinearGradient(0, barY - 80, 0, height);
+        veil.addColorStop(0, 'rgba(7,10,16,0)');
+        veil.addColorStop(1, 'rgba(7,10,16,0.88)');
+        ctx.fillStyle = veil;
+        ctx.fillRect(0, barY - 80, width, height - (barY - 80));
+      }
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(7,10,16,0.92)';
+      ctx.roundRect(28, barY, width - 56, barH, 28);
+      ctx.fill();
+      this.drawKicker(ctx, width / 2, barY + 42, kicker);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 40px sans-serif';
+      this.drawWrappedText(ctx, text, width / 2, barY + 92, width - 120, 48);
+      return;
+    }
+
+    if (overlayOnly && style !== 'minimal') {
+      const top = ctx.createLinearGradient(0, 0, 0, 340);
+      top.addColorStop(0, 'rgba(7,10,16,0.82)');
+      top.addColorStop(1, 'rgba(7,10,16,0)');
+      ctx.fillStyle = top;
+      ctx.fillRect(0, 0, width, 340);
+    }
+
+    if (style === 'minimal') {
+      if (overlayOnly) {
+        const top = ctx.createLinearGradient(0, 0, 0, 220);
+        top.addColorStop(0, 'rgba(7,10,16,0.55)');
+        top.addColorStop(1, 'rgba(7,10,16,0)');
+        ctx.fillStyle = top;
+        ctx.fillRect(0, 0, width, 220);
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(width / 2 - 36, 92);
+      ctx.lineTo(width / 2 + 36, 92);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(242,245,247,0.78)';
+      ctx.font = '500 32px sans-serif';
+      this.drawWrappedText(ctx, text, width / 2, 136, width - 160, 40);
+      return;
+    }
+
+    if (style === 'word_highlight') {
+      this.drawKicker(ctx, width / 2, 88, kicker);
+      this.drawHighlightedCaption(ctx, text, width / 2, 168, width - 120, accentColor);
+      return;
+    }
+
+    this.drawKicker(ctx, width / 2, 88, kicker);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 54px sans-serif';
+    this.drawWrappedText(ctx, text, width / 2, 150, width - 100, 62);
+    if (narrationText && (sceneIndex === 0 || sceneIndex === 2)) {
+      ctx.fillStyle = P.secondary;
+      ctx.font = '22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(narrationText.slice(0, 72), width / 2, 300);
+    }
+  }
+
+  private drawHighlightedCaption(
+    ctx: any,
+    caption: string,
+    x: number,
+    y: number,
+    maxWidth: number,
+    accent: string
+  ) {
+    const words = (caption || 'WATCH').split(/\s+/).filter(Boolean);
+    const first = words[0] || 'WATCH';
+    const rest = words.slice(1).join(' ');
+    ctx.font = '800 52px sans-serif';
+    ctx.textAlign = 'center';
+    const firstW = Math.min(ctx.measureText(first).width, maxWidth);
+    ctx.beginPath();
+    ctx.fillStyle = `${accent}33`;
+    ctx.roundRect(x - firstW / 2 - 18, y - 50, firstW + 36, 70, 18);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.fillText(first, x, y);
+    if (rest) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 40px sans-serif';
+      this.drawWrappedText(ctx, rest, x, y + 66, maxWidth, 48);
+    }
   }
 
   private drawIPhone(ctx: any, p: { x: number; y: number; w: number; h: number }) {
@@ -1014,8 +1156,10 @@ export class VideoRendererService {
     audioBuffer?: Buffer;
     targetDir: string;
     resolution: { width: number; height: number };
+    musicTrack?: MusicTrackId;
+    musicVolume?: MusicVolumeId;
   }): Promise<void> {
-    const { framePaths, motionClips, outputPath, duration, audioBuffer, targetDir, resolution } = params;
+    const { framePaths, motionClips, outputPath, duration, audioBuffer, targetDir, resolution, musicTrack, musicVolume } = params;
     const { spawn } = require('child_process');
     const ffmpegBin = this.resolveFfmpegBin();
     const { width, height } = resolution;
@@ -1102,13 +1246,13 @@ export class VideoRendererService {
         '-y', '-f', 'concat', '-safe', '0', '-i', concatListPath,
       ];
       if (audioFile && fs.existsSync(audioFile)) finalArgs.push('-i', audioFile);
-      const musicFile = resolveMusicBedPath();
+      const musicFile = resolveMusicBedPath(musicTrack);
       const mixMusic = Boolean(audioFile && musicFile);
       if (mixMusic && musicFile) {
         finalArgs.push('-stream_loop', '-1', '-i', musicFile);
       }
       if (mixMusic) {
-        finalArgs.push('-filter_complex', buildVoiceMusicMixFilter(duration), '-map', '0:v', '-map', '[a]');
+        finalArgs.push('-filter_complex', buildVoiceMusicMixFilter(duration, volumeForLevel(musicVolume)), '-map', '0:v', '-map', '[a]');
       }
       finalArgs.push(
         '-c:v', 'libx264', '-profile:v', 'baseline', '-level', '3.1',

@@ -37,6 +37,7 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
   const packs = visibleCreditPacks(pricing);
   const subs = visibleSubscriptions(pricing);
   const legal = pricing.legal;
+  const supportUrl = legal.supportUrl || 'https://senthilmkm.github.io/LinkReel/support.html';
   const banner = pricing.banner;
   const bannerTone = bannerColors(banner.tone);
 
@@ -172,6 +173,10 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
           </TouchableOpacity>
         )}
         <View style={styles.linkRow}>
+          <TouchableOpacity onPress={() => void IapService.openLegal(supportUrl)}>
+            <Text style={styles.link}>Support</Text>
+          </TouchableOpacity>
+          <Text style={styles.linkDot}>·</Text>
           <TouchableOpacity onPress={() => void IapService.openLegal(legal.termsUrl)}>
             <Text style={styles.link}>Terms of Use</Text>
           </TouchableOpacity>

@@ -10,9 +10,11 @@ import { StorePreviewScreen } from './src/screens/StorePreviewScreen';
 import { GenerationTrackerScreen } from './src/screens/GenerationTrackerScreen';
 import { VideoStudioScreen } from './src/screens/VideoStudioScreen';
 import { PaywallScreen } from './src/screens/PaywallScreen';
-import { ApiService, JobResponse, SceneShotRef } from './src/services/api';
+import { ApiService, JobResponse, SceneShotRef, Storyboard } from './src/services/api';
 import { getStableUserId } from './src/services/deviceUser';
 import { refreshPricing } from './src/services/pricing';
+import { CAPTION_STYLES } from './src/config/captionStyles';
+import { MUSIC_TRACKS } from './src/config/musicTracks';
 
 export default function App() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
@@ -93,12 +95,16 @@ export default function App() {
     if (userId) void refreshCredits(userId);
   };
 
-  const handleGenerate = async (sceneShots: SceneShotRef[]) => {
+  const handleGenerate = async (sceneShots: SceneShotRef[], storyboard?: Storyboard) => {
     if (!userId) return;
     if (!draft) {
       Alert.alert('Start with the story', 'Write your story first so we can lock the 4 scenes.');
       setActiveScreen('dashboard');
       return;
+    }
+    const lockedScript = storyboard || draft.storyboard;
+    if (storyboard) {
+      setDraft((prev) => (prev ? { ...prev, storyboard } : prev));
     }
     if (credits < 1) {
       openPaywall(draft.source === 'store' ? 'preview' : 'shots');
@@ -112,12 +118,15 @@ export default function App() {
         productName: draft.productName,
         userDescription: draft.userDescription,
         enableWebScraping: draft.enableWebScraping,
-        lockedScript: draft.storyboard,
+        lockedScript,
         sceneShots,
         idempotencyKey,
         aspectRatio: draft.aspectRatio,
         stylePreset: draft.stylePreset,
         voiceId: draft.voiceId,
+        captionStyle: draft.captionStyle,
+        musicTrack: draft.musicTrack,
+        musicVolume: draft.musicVolume,
       });
 
       setCredits((prev) => Math.max(0, prev - 1));
@@ -179,7 +188,10 @@ export default function App() {
           storyboard={draft.storyboard}
           productName={draft.productName}
           onBack={() => setActiveScreen('dashboard')}
-          onFinish={(shots) => void handleGenerate(shots)}
+          onScriptChange={(storyboard) =>
+            setDraft((prev) => (prev ? { ...prev, storyboard } : prev))
+          }
+          onFinish={(shots, storyboard) => void handleGenerate(shots, storyboard)}
         />
       )}
 
@@ -189,8 +201,17 @@ export default function App() {
           listing={draft.listing}
           storyboard={draft.storyboard}
           assignedShots={draft.assignedShots || []}
+          captionStyleLabel={CAPTION_STYLES.find((s) => s.id === draft.captionStyle)?.title}
+          musicLabel={
+            draft.musicTrack === 'none'
+              ? 'Off'
+              : `${MUSIC_TRACKS.find((t) => t.id === draft.musicTrack)?.title || 'Pulse'} · ${draft.musicVolume || 'medium'}`
+          }
           onBack={() => setActiveScreen('dashboard')}
-          onGenerate={(shots) => void handleGenerate(shots)}
+          onScriptChange={(storyboard) =>
+            setDraft((prev) => (prev ? { ...prev, storyboard } : prev))
+          }
+          onGenerate={(shots, storyboard) => void handleGenerate(shots, storyboard)}
         />
       )}
 

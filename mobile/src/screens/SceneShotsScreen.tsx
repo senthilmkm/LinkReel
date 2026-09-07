@@ -9,12 +9,16 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Colors } from '../theme/colors';
 import { ApiService, SceneShotRef, Storyboard } from '../services/api';
+import { SceneCopyFields } from '../components/SceneCopyFields';
+import { scriptReadyMessage, withSceneCopy } from '../utils/storyboardEdits';
 
 interface LocalShot {
   sceneId: number;
@@ -27,11 +31,20 @@ interface Props {
   storyboard: Storyboard;
   productName?: string;
   onBack: () => void;
-  onFinish: (shots: SceneShotRef[]) => void;
+  onScriptChange?: (storyboard: Storyboard) => void;
+  onFinish: (shots: SceneShotRef[], storyboard: Storyboard) => void;
 }
 
-export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productName, onBack, onFinish }) => {
-  const scenes = storyboard.scenes || [];
+export const SceneShotsScreen: React.FC<Props> = ({
+  userId,
+  storyboard,
+  productName,
+  onBack,
+  onScriptChange,
+  onFinish,
+}) => {
+  const [board, setBoard] = useState(storyboard);
+  const scenes = board.scenes || [];
   const [index, setIndex] = useState(0);
   const [shots, setShots] = useState<Record<number, LocalShot>>({});
   const [skipped, setSkipped] = useState<Record<number, true>>({});
@@ -50,6 +63,18 @@ export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productN
     return scenes.filter((s) => s.shotKind === 'product_shot' && !shots[s.id]).length;
   }, [scenes, shots]);
 
+  const finish = () => {
+    const blocked = scriptReadyMessage(board);
+    if (blocked) {
+      Alert.alert('Fix the words first', blocked);
+      return;
+    }
+    onFinish(
+      Object.values(shots).map(({ sceneId, objectPath }) => ({ sceneId, objectPath })),
+      board
+    );
+  };
+
   const goNext = () => {
     if (!isLast) {
       setIndex((i) => i + 1);
@@ -61,12 +86,19 @@ export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productN
         'You can still generate. That beat will use a caption card, so the reel will look less like your app.',
         [
           { text: 'Add a shot', style: 'cancel' },
-          { text: 'Generate anyway', onPress: () => onFinish(Object.values(shots).map(({ sceneId, objectPath }) => ({ sceneId, objectPath }))) },
+          { text: 'Generate anyway', onPress: finish },
         ]
       );
       return;
     }
-    onFinish(Object.values(shots).map(({ sceneId, objectPath }) => ({ sceneId, objectPath })));
+    finish();
+  };
+
+  const updateScene = (patch: { caption?: string; narrationText?: string }) => {
+    if (!scene) return;
+    const next = withSceneCopy(board, scene.id, patch);
+    setBoard(next);
+    onScriptChange?.(next);
   };
 
   const markSkip = () => {
@@ -165,6 +197,10 @@ export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productN
 
   return (
     <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <View style={styles.header}>
         <TouchableOpacity onPress={index === 0 ? onBack : () => setIndex((i) => i - 1)}>
           <Text style={styles.back}>‹ Back</Text>
@@ -177,9 +213,16 @@ export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productN
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.kicker}>{needsShot ? 'NEEDS YOUR SCREEN' : 'CAPTION CARD — SHOT OPTIONAL'}</Text>
-        <Text style={styles.caption}>{scene.caption}</Text>
+        <Text style={styles.editHint}>Fix the words if they are off. Free until you generate.</Text>
+        <SceneCopyFields
+          caption={scene.caption}
+          narration={scene.narrationText}
+          onCaptionChange={(value) => updateScene({ caption: value })}
+          onNarrationChange={(value) => updateScene({ narrationText: value })}
+        />
 
         <View style={styles.previewWrap}>
           {attached ? (
@@ -204,7 +247,6 @@ export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productN
           ) : null}
         </View>
 
-        <Text style={styles.narration}>{scene.narrationText}</Text>
         <Text style={styles.prompt}>{scene.shotPrompt}</Text>
         {productName ? <Text style={styles.product}>For {productName}</Text> : null}
       </ScrollView>
@@ -265,6 +307,7 @@ export const SceneShotsScreen: React.FC<Props> = ({ userId, storyboard, productN
           </>
         )}
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -295,10 +338,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  caption: { color: Colors.textPrimary, fontSize: 28, fontWeight: '800', marginBottom: 12 },
-  narration: { color: Colors.textSecondary, fontSize: 15, lineHeight: 22, marginBottom: 12 },
+  editHint: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
   prompt: { color: Colors.textPrimary, fontSize: 14, lineHeight: 20, marginBottom: 8 },
   product: { color: Colors.textMuted, fontSize: 12, marginBottom: 14 },
   confirmAsk: {

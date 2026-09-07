@@ -13,6 +13,9 @@ export interface UserDocument {
 export type AspectRatio = '9:16' | '1:1' | '16:9';
 export type StylePreset = 'saas_dark' | 'ecommerce_punchy' | 'minimal_editorial';
 export type VoiceId = 'en-US-Neural2-F' | 'en-US-Neural2-D';
+export type CaptionStyle = 'bold_center' | 'bottom_bar' | 'word_highlight' | 'minimal';
+export type MusicTrackId = 'none' | 'pulse' | 'warm' | 'drive' | 'lift' | 'night';
+export type MusicVolumeId = 'quiet' | 'medium' | 'loud';
 
 export type JobStatus = 
   | 'queued' 
@@ -107,6 +110,9 @@ export interface VideoJobDocument {
   aspectRatio: AspectRatio;
   stylePreset: StylePreset;
   voiceId: VoiceId;
+  captionStyle?: CaptionStyle;
+  musicTrack?: MusicTrackId;
+  musicVolume?: MusicVolumeId;
   status: JobStatus;
   progress: number;
   branding?: ScrapedBranding;
