@@ -243,6 +243,9 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
               )}
             </View>
             <Text style={styles.storyHint}>{pricing.messages.dashboardHint}</Text>
+            <Text style={styles.rightsHint}>
+              Only paste a public App Store listing you have the right to promote. We use Apple’s public screenshots and preview clip for that URL — not a private copy of someone else’s app.
+            </Text>
           </>
         ) : (
           <>
@@ -618,6 +621,12 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 8,
     marginTop: 10,
+  },
+  rightsHint: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    lineHeight: 17,
+    marginBottom: 8,
   },
   textAreaInput: {
     fontSize: 14,

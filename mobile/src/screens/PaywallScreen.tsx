@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Colors } from '../theme/colors';
 import { IapService } from '../services/iap';
 import {
@@ -163,6 +164,20 @@ export const PaywallScreen: React.FC<Props> = ({ userId, credits, onClose, onCre
         </View>
 
         <Text style={styles.legalBody}>{pricing.paywall.legalBody}</Text>
+
+        <TouchableOpacity
+          style={styles.userIdRow}
+          onPress={() => {
+            void Clipboard.setStringAsync(userId).then(() => {
+              Alert.alert('Copied', 'Paste this user ID in your support email if you need data deleted.');
+            });
+          }}
+        >
+          <Text style={styles.userIdLabel}>User ID (tap to copy)</Text>
+          <Text style={styles.userIdValue} selectable>
+            {userId}
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -284,6 +299,9 @@ const styles = StyleSheet.create({
   featMark: { color: Colors.textSecondary, fontSize: 14 },
   featText: { flex: 1, color: Colors.textPrimary, fontSize: 14, fontWeight: '600', lineHeight: 20 },
   legalBody: { marginTop: 16, fontSize: 12, lineHeight: 18, color: Colors.textMuted },
+  userIdRow: { marginTop: 14, paddingVertical: 8 },
+  userIdLabel: { color: Colors.textMuted, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  userIdValue: { color: Colors.textSecondary, fontSize: 12 },
   footer: { paddingHorizontal: 24, paddingBottom: 20, paddingTop: 8 },
   restoreBtn: { alignItems: 'center', paddingVertical: 10 },
   restoreText: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700' },
