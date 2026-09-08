@@ -57,6 +57,18 @@ export interface CreateJobParams {
   musicVolume?: 'quiet' | 'medium' | 'loud';
 }
 
+export interface ReelSummary {
+  id: string;
+  title: string;
+  outputVideoUrl: string;
+  durationSeconds?: number;
+  aspectRatio?: string;
+  voiceId?: string;
+  createdAt: number;
+  expiresAt: number;
+  expired: boolean;
+}
+
 export interface JobResponse {
   id: string;
   userId: string;
@@ -99,10 +111,25 @@ async function readError(res: Response): Promise<string> {
   return errJson.message || errJson.error || `API error: ${res.status}`;
 }
 
+async function apiFetch(path: string, init?: RequestInit, timeoutMs = Config.api.timeoutMs): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(`${Config.api.baseUrl}${path}`, { ...init, signal: controller.signal });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error('That took too long. Check your connection and try again.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const ApiService = {
   async getFeatures(): Promise<{ playStore: boolean }> {
     try {
-      const res = await fetch(`${Config.api.baseUrl}/api/v1/features`);
+      const res = await apiFetch('/api/v1/features', undefined, 8000);
       if (!res.ok) return { playStore: false };
       const data = await res.json();
       return { playStore: Boolean(data.playStore) };
@@ -118,11 +145,11 @@ export const ApiService = {
     inputUrl?: string;
     stylePreset: CreateJobParams['stylePreset'];
   }): Promise<{ storyboard: Storyboard; cached: boolean }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/storyboard/plan`, {
+    const res = await apiFetch('/api/v1/storyboard/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
-    });
+    }, 90000);
     if (!res.ok) throw new Error(await readError(res));
     return await res.json();
   },
@@ -137,11 +164,11 @@ export const ApiService = {
     assignedShots: StoreSceneShot[];
     cached: boolean;
   }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/store/plan`, {
+    const res = await apiFetch('/api/v1/store/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
-    });
+    }, 90000);
     if (!res.ok) throw new Error(await readError(res));
     return await res.json();
   },
@@ -151,7 +178,7 @@ export const ApiService = {
     sceneId: number;
     contentType: 'image/jpeg' | 'image/png' | 'image/webp';
   }): Promise<{ uploadUrl: string; objectPath: string; headers: Record<string, string> }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/uploads/sign`, {
+    const res = await apiFetch('/api/v1/uploads/sign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -166,17 +193,17 @@ export const ApiService = {
     contentType: 'image/jpeg' | 'image/png' | 'image/webp';
     imageBase64: string;
   }): Promise<{ objectPath: string }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/uploads`, {
+    const res = await apiFetch('/api/v1/uploads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
-    });
+    }, 60000);
     if (!res.ok) throw new Error(await readError(res));
     return await res.json();
   },
 
   async createJob(params: CreateJobParams): Promise<{ jobId: string }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/jobs`, {
+    const res = await apiFetch('/api/v1/jobs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
@@ -186,16 +213,24 @@ export const ApiService = {
     return await res.json();
   },
 
-  async getJob(jobId: string): Promise<JobResponse> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/jobs/${jobId}`);
+  async getJob(jobId: string, userId?: string): Promise<JobResponse> {
+    const q = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+    const res = await apiFetch(`/api/v1/jobs/${jobId}${q}`);
     if (!res.ok) {
       throw new Error(`Failed to fetch job ${jobId}`);
     }
     return await res.json();
   },
 
+  async listReels(userId: string): Promise<ReelSummary[]> {
+    const res = await apiFetch(`/api/v1/users/${encodeURIComponent(userId)}/reels`);
+    if (!res.ok) throw new Error(await readError(res));
+    const data = await res.json();
+    return Array.isArray(data.reels) ? data.reels : [];
+  },
+
   async getUser(userId: string): Promise<{ creditsRemaining: number; plan: string }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/users/${userId}`);
+    const res = await apiFetch(`/api/v1/users/${userId}`);
     if (!res.ok) throw new Error('USER_FETCH_FAILED');
     return await res.json();
   },
@@ -205,7 +240,7 @@ export const ApiService = {
     productId: 'com.linkreel.credits.10' | 'com.linkreel.credits.25';
     signedTransaction: string;
   }): Promise<{ creditsRemaining: number; creditsAdded: number; duplicate?: boolean }> {
-    const res = await fetch(`${Config.api.baseUrl}/api/v1/purchases/confirm`, {
+    const res = await apiFetch('/api/v1/purchases/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),

@@ -39,9 +39,10 @@ interface Props {
   userId: string;
   onPlanned: (draft: StoryDraft) => void;
   onOpenPaywall: () => void;
+  onOpenMyReels: () => void;
 }
 
-export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, onOpenPaywall }) => {
+export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, onOpenPaywall, onOpenMyReels }) => {
   const [mode, setMode] = useState<'store' | 'story'>('store');
   const [storeUrl, setStoreUrl] = useState('');
   const [url, setUrl] = useState('');
@@ -173,14 +174,31 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
               : 'Story → scenes → your screens'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.creditBadge} onPress={onOpenPaywall}>
-          <Text style={styles.creditIcon}>⚡</Text>
-          <Text style={styles.creditText}>{creditBadgeText(credits, pricing)}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.reelsBtn} onPress={onOpenMyReels}>
+            <Text style={styles.reelsBtnText}>My reels</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.creditBadge} onPress={onOpenPaywall}>
+            <Text style={styles.creditIcon}>⚡</Text>
+            <Text style={styles.creditText}>{creditBadgeText(credits, pricing)}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {pricing.banner.enabled && Boolean(pricing.banner.message) && (
+        {credits < 1 ? (
+          <TouchableOpacity
+            style={[styles.homeBanner, { borderColor: Colors.statusError }]}
+            activeOpacity={0.85}
+            onPress={onOpenPaywall}
+          >
+            <Text style={styles.homeBannerTitle}>Free reels used</Text>
+            <Text style={styles.homeBannerBody}>
+              Planning is still free. Generate needs a one-time credit pack.
+            </Text>
+            <Text style={styles.homeBannerCta}>Get credits</Text>
+          </TouchableOpacity>
+        ) : pricing.banner.enabled && Boolean(pricing.banner.message) ? (
           <TouchableOpacity
             style={[
               styles.homeBanner,
@@ -196,7 +214,7 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
               <Text style={styles.homeBannerCta}>{pricing.banner.ctaLabel}</Text>
             ) : null}
           </TouchableOpacity>
-        )}
+        ) : null}
         {mode === 'store' ? (
           <>
             <Text style={styles.sectionLabel}>
@@ -460,6 +478,16 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reelsBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.surfaceCard,
+  },
+  reelsBtnText: { color: Colors.textPrimary, fontSize: 13, fontWeight: '700' },
   creditBadge: {
     flexDirection: 'row',
     alignItems: 'center',

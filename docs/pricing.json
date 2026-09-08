@@ -138,7 +138,7 @@
       "$4.99 buys 10 reels. $9.99 buys 25 reels. One-time, not a subscription",
       "Nora or Alex voiceover, captions, 1080×1920",
       "App Store screenshots and preview video when Apple has one",
-      "Save to Photos. The in-app video link expires in 7 days"
+      "Save to Photos. Finished reels stay in My reels for 7 days"
     ],
     "legalBody": "Payment is charged to your Apple ID at confirmation. Prices above are USD; Apple shows and charges the price for your storefront. These are consumable In-App Purchases, not auto-renewing subscriptions. Unused credits stay on this iPhone account. Used credits cannot be restored or refunded except as Apple requires. Restore Purchases only finishes a buy that was interrupted (you were charged but credits were not added).",
     "restoreLabel": "Restore Purchases",
@@ -153,7 +153,7 @@
     "dashboardHint": "We read the listing and screenshots. Planning is free. Generate uses 1 credit.",
     "creditBadgeLabel": "{credits} Credits",
     "creditBadgeEmpty": "Get credits",
-    "onboardingGenerate": "About 30 seconds, voiceover, captions. You get 3 free reels. After that, buy a one-time pack. Save to Photos — the in-app link expires in 7 days.",
+    "onboardingGenerate": "About 30 seconds, voiceover, captions. You get 3 free reels. After that, buy a one-time pack. Save to Photos. Finished reels stay in My reels for 7 days.",
     "insufficientCredits": "You have used your 3 free reels. Buy a credit pack to generate another.",
     "iapNotLive": "This product is not for sale yet. LinkReel will not add credits without a finished Apple transaction."
   },

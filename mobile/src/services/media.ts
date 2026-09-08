@@ -77,6 +77,7 @@ export const MediaService = {
       }
     } catch (error: any) {
       console.error('[MediaService Share Error]', error);
+      Alert.alert('Share failed', error.message || 'Could not share that reel. Try Save to Photos instead.');
     }
   },
 };

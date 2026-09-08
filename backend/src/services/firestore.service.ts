@@ -11,6 +11,11 @@ export const firestore = new Firestore({
 export const USERS_COLLECTION = 'users';
 export const JOBS_COLLECTION = 'video_jobs';
 export const PURCHASES_COLLECTION = 'iap_purchases';
+export const JOB_LOCKS_COLLECTION = 'job_idempotency';
+
+function jobLockId(userId: string, idempotencyKey: string): string {
+  return `${userId}_${idempotencyKey}`.replace(/\//g, '_').slice(0, 700);
+}
 
 async function clampUnpaidUser(
   userRef: DocumentReference,
@@ -55,23 +60,19 @@ export async function createJobWithAtomicDeduction(
   userId: string,
   jobData: Omit<VideoJobDocument, 'id' | 'status' | 'progress' | 'createdAt' | 'updatedAt'>
 ): Promise<{ jobId: string; isDuplicate: boolean }> {
-  // 1. Check idempotency key for double-tap prevention
-  const existingJobQuery = await firestore
-    .collection(JOBS_COLLECTION)
-    .where('userId', '==', userId)
-    .where('idempotencyKey', '==', jobData.idempotencyKey)
-    .limit(1)
-    .get();
-
-  if (!existingJobQuery.empty) {
-    return { jobId: existingJobQuery.docs[0].id, isDuplicate: true };
-  }
-
   const userRef = firestore.collection(USERS_COLLECTION).doc(userId);
   const jobRef = firestore.collection(JOBS_COLLECTION).doc();
+  const lockRef = firestore.collection(JOB_LOCKS_COLLECTION).doc(jobLockId(userId, jobData.idempotencyKey));
+  let result: { jobId: string; isDuplicate: boolean } = { jobId: jobRef.id, isDuplicate: false };
 
   await firestore.runTransaction(async (tx) => {
+    const lockDoc = await tx.get(lockRef);
     const userDoc = await tx.get(userRef);
+
+    if (lockDoc.exists) {
+      result = { jobId: String(lockDoc.data()?.jobId || ''), isDuplicate: true };
+      return;
+    }
     if (!userDoc.exists) {
       throw new Error('USER_NOT_FOUND');
     }
@@ -89,7 +90,6 @@ export async function createJobWithAtomicDeduction(
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    // Create job in queued status
     const initialJob: VideoJobDocument = {
       ...jobData,
       id: jobRef.id,
@@ -101,9 +101,15 @@ export async function createJobWithAtomicDeduction(
     };
 
     tx.set(jobRef, initialJob);
+    tx.set(lockRef, {
+      jobId: jobRef.id,
+      userId,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    result = { jobId: jobRef.id, isDuplicate: false };
   });
 
-  return { jobId: jobRef.id, isDuplicate: false };
+  return result;
 }
 
 export async function redeemStorePurchase(params: {
@@ -200,4 +206,61 @@ export async function failJob(
     },
     updatedAt: FieldValue.serverTimestamp(),
   });
+}
+
+const REEL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function timestampToMillis(value: unknown): number {
+  if (!value) return 0;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  const maybe = value as { toMillis?: () => number; seconds?: number; _seconds?: number };
+  if (typeof maybe.toMillis === 'function') return maybe.toMillis();
+  if (typeof maybe.seconds === 'number') return maybe.seconds * 1000;
+  if (typeof maybe._seconds === 'number') return maybe._seconds * 1000;
+  return 0;
+}
+
+export interface UserReelSummary {
+  id: string;
+  title: string;
+  outputVideoUrl: string;
+  durationSeconds?: number;
+  aspectRatio?: string;
+  voiceId?: string;
+  createdAt: number;
+  expiresAt: number;
+  expired: boolean;
+}
+
+export async function listUserReels(userId: string): Promise<UserReelSummary[]> {
+  const snap = await firestore.collection(JOBS_COLLECTION).where('userId', '==', userId).limit(80).get();
+  const now = Date.now();
+  const rows: UserReelSummary[] = [];
+  for (const doc of snap.docs) {
+    const data = doc.data() as VideoJobDocument;
+    if (data.status !== 'completed' || !data.outputVideoUrl) continue;
+    const created =
+      timestampToMillis(data.completedAt) || timestampToMillis(data.updatedAt) || timestampToMillis(data.createdAt);
+    const expiresAt = created + REEL_TTL_MS;
+    const title = (data.branding?.title || data.productName || 'Your reel').trim() || 'Your reel';
+    rows.push({
+      id: doc.id,
+      title: title.slice(0, 80),
+      outputVideoUrl: data.outputVideoUrl,
+      durationSeconds: data.durationSeconds,
+      aspectRatio: data.aspectRatio,
+      voiceId: data.voiceId,
+      createdAt: created,
+      expiresAt,
+      expired: created > 0 ? now > expiresAt : false,
+    });
+  }
+  rows.sort((a, b) => b.createdAt - a.createdAt);
+  return rows.slice(0, 20);
 }

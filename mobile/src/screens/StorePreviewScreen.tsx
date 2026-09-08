@@ -13,10 +13,13 @@ import {
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { SceneShotRef, StoreListing, StoreSceneShot, Storyboard } from '../services/api';
+import { creditBadgeText, getPricing } from '../services/pricing';
 import { SceneCopyFields } from '../components/SceneCopyFields';
 import { scriptReadyMessage, withSceneCopy } from '../utils/storyboardEdits';
 
 interface Props {
+  credits: number;
+  generating?: boolean;
   productName?: string;
   listing: StoreListing;
   storyboard: Storyboard;
@@ -24,11 +27,14 @@ interface Props {
   captionStyleLabel?: string;
   musicLabel?: string;
   onBack: () => void;
+  onOpenPaywall?: () => void;
   onScriptChange?: (storyboard: Storyboard) => void;
   onGenerate: (shots: SceneShotRef[], storyboard: Storyboard) => void;
 }
 
 export const StorePreviewScreen: React.FC<Props> = ({
+  credits,
+  generating = false,
   productName,
   listing,
   storyboard,
@@ -36,6 +42,7 @@ export const StorePreviewScreen: React.FC<Props> = ({
   captionStyleLabel,
   musicLabel,
   onBack,
+  onOpenPaywall,
   onScriptChange,
   onGenerate,
 }) => {
@@ -69,6 +76,7 @@ export const StorePreviewScreen: React.FC<Props> = ({
   };
 
   const handleGenerate = () => {
+    if (generating) return;
     const blocked = scriptReadyMessage(board);
     if (blocked) {
       Alert.alert('Fix the words first', blocked);
@@ -83,6 +91,12 @@ export const StorePreviewScreen: React.FC<Props> = ({
     onGenerate(sceneShots, board);
   };
 
+  const generateLabel = credits < 1
+    ? 'Get credits to generate'
+    : generating
+      ? 'Starting…'
+      : 'Generate my reel · 1 credit';
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -94,7 +108,9 @@ export const StorePreviewScreen: React.FC<Props> = ({
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={1}>{productName || listing.name}</Text>
-        <View style={{ width: 48 }} />
+        <TouchableOpacity onPress={onOpenPaywall} disabled={!onOpenPaywall}>
+          <Text style={styles.creditChip}>{creditBadgeText(credits, getPricing())}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -176,8 +192,13 @@ export const StorePreviewScreen: React.FC<Props> = ({
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.generate} onPress={handleGenerate} activeOpacity={0.85}>
-          <Text style={styles.generateText}>Generate my reel · 1 credit</Text>
+        <TouchableOpacity
+          style={[styles.generate, generating && { opacity: 0.6 }]}
+          onPress={handleGenerate}
+          disabled={generating}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.generateText}>{generateLabel}</Text>
         </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
@@ -197,6 +218,7 @@ const styles = StyleSheet.create({
   },
   back: { color: Colors.textSecondary, fontSize: 16, fontWeight: '600' },
   title: { flex: 1, color: Colors.textPrimary, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  creditChip: { color: Colors.accentCyan, fontSize: 12, fontWeight: '800', marginLeft: 8 },
   body: { paddingHorizontal: 20, paddingBottom: 20 },
   hint: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18, marginBottom: 16 },
   hintEm: { color: Colors.textPrimary, fontSize: 13, fontWeight: '700' },

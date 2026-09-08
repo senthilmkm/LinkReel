@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
 import { registerRootComponent } from 'expo';
 import { Colors } from './src/theme/colors';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
@@ -11,6 +11,7 @@ import { StorePreviewScreen } from './src/screens/StorePreviewScreen';
 import { GenerationTrackerScreen } from './src/screens/GenerationTrackerScreen';
 import { VideoStudioScreen } from './src/screens/VideoStudioScreen';
 import { PaywallScreen } from './src/screens/PaywallScreen';
+import { MyReelsScreen } from './src/screens/MyReelsScreen';
 import { ApiService, JobResponse, SceneShotRef, Storyboard } from './src/services/api';
 import { getStableUserId } from './src/services/deviceUser';
 import { IapService } from './src/services/iap';
@@ -25,9 +26,13 @@ export default function App() {
   const [credits, setCredits] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<JobResponse | null>(null);
-  const [activeScreen, setActiveScreen] = useState<'dashboard' | 'shots' | 'preview' | 'tracking' | 'studio' | 'paywall'>('dashboard');
+  const [activeScreen, setActiveScreen] = useState<'dashboard' | 'shots' | 'preview' | 'tracking' | 'studio' | 'paywall' | 'reels'>('dashboard');
   const [draft, setDraft] = useState<StoryDraft | null>(null);
   const [returnAfterPaywall, setReturnAfterPaywall] = useState<'dashboard' | 'shots' | 'preview'>('dashboard');
+  const [studioReturn, setStudioReturn] = useState<'dashboard' | 'reels'>('dashboard');
+  const [generating, setGenerating] = useState(false);
+  const generatingLock = useRef(false);
+  const inflightJobKey = useRef<string | null>(null);
 
   useEffect(() => {
     void refreshPricing();
@@ -75,7 +80,7 @@ export default function App() {
     if (activeScreen === 'tracking' && jobId) {
       const pollJob = async () => {
         try {
-          const updated = await ApiService.getJob(jobId);
+          const updated = await ApiService.getJob(jobId, userId || undefined);
           setCurrentJob(updated);
 
           if (updated.status === 'completed') {
@@ -98,16 +103,15 @@ export default function App() {
       interval = setInterval(pollJob, 2000);
     }
     return () => clearInterval(interval);
-  }, [activeScreen, currentJob?.id]);
+  }, [activeScreen, currentJob?.id, userId]);
 
-  const refreshCredits = async (id: string) => {
+  const refreshCredits = async (id: string): Promise<number | null> => {
     try {
       const data = await ApiService.getUser(id);
       setCredits(data.creditsRemaining);
       return data.creditsRemaining;
     } catch {
-      setCredits(0);
-      return 0;
+      return null;
     }
   };
 
@@ -118,7 +122,7 @@ export default function App() {
   };
 
   const handleGenerate = async (sceneShots: SceneShotRef[], storyboard?: Storyboard) => {
-    if (!userId) return;
+    if (!userId || generatingLock.current) return;
     if (!draft) {
       Alert.alert('Start with the story', 'Write your story first so we can lock the 4 scenes.');
       setActiveScreen('dashboard');
@@ -128,12 +132,17 @@ export default function App() {
     if (storyboard) {
       setDraft((prev) => (prev ? { ...prev, storyboard } : prev));
     }
-    if (credits < 1) {
+    const latest = await refreshCredits(userId);
+    if ((latest ?? credits) < 1) {
       openPaywall(draft.source === 'store' ? 'preview' : 'shots');
       return;
     }
+    generatingLock.current = true;
+    setGenerating(true);
     try {
-      const idempotencyKey = `job_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      if (!inflightJobKey.current) {
+        inflightJobKey.current = `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      }
       const res = await ApiService.createJob({
         userId,
         inputUrl: draft.url || undefined,
@@ -142,7 +151,7 @@ export default function App() {
         enableWebScraping: draft.enableWebScraping,
         lockedScript,
         sceneShots,
-        idempotencyKey,
+        idempotencyKey: inflightJobKey.current,
         aspectRatio: draft.aspectRatio,
         stylePreset: draft.stylePreset,
         voiceId: draft.voiceId,
@@ -151,7 +160,9 @@ export default function App() {
         musicVolume: draft.musicVolume,
       });
 
-      setCredits((prev) => Math.max(0, prev - 1));
+      inflightJobKey.current = null;
+      await refreshCredits(userId);
+      setStudioReturn('dashboard');
       setCurrentJob({
         id: res.jobId,
         userId,
@@ -168,15 +179,29 @@ export default function App() {
     } catch (error: any) {
       const msg = String(error.message || '');
       if (msg.includes('INSUFFICIENT_CREDITS')) {
+        inflightJobKey.current = null;
         openPaywall(draft.source === 'store' ? 'preview' : 'shots');
       } else {
         Alert.alert('Error', error.message || 'Unable to queue video generation.');
       }
+    } finally {
+      generatingLock.current = false;
+      setGenerating(false);
     }
   };
 
+  const goDashboard = () => {
+    setActiveScreen('dashboard');
+    if (userId) void refreshCredits(userId);
+  };
+
   if (hasSeenOnboarding === null || !userId) {
-    return <View style={styles.container}><StatusBar style="light" /></View>;
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <ActivityIndicator color={Colors.accentCyan} style={{ flex: 1 }} />
+      </View>
+    );
   }
 
   if (!hasSeenOnboarding) {
@@ -206,15 +231,19 @@ export default function App() {
             setActiveScreen(next.source === 'store' ? 'preview' : 'shots');
           }}
           onOpenPaywall={() => openPaywall('dashboard')}
+          onOpenMyReels={() => setActiveScreen('reels')}
         />
       )}
 
       {activeScreen === 'shots' && draft && (
         <SceneShotsScreen
           userId={userId}
+          credits={credits}
+          generating={generating}
           storyboard={draft.storyboard}
           productName={draft.productName}
           onBack={() => setActiveScreen('dashboard')}
+          onOpenPaywall={() => openPaywall('shots')}
           onScriptChange={(storyboard) =>
             setDraft((prev) => (prev ? { ...prev, storyboard } : prev))
           }
@@ -224,6 +253,8 @@ export default function App() {
 
       {activeScreen === 'preview' && draft?.listing && (
         <StorePreviewScreen
+          credits={credits}
+          generating={generating}
           productName={draft.productName}
           listing={draft.listing}
           storyboard={draft.storyboard}
@@ -235,6 +266,7 @@ export default function App() {
               : `${MUSIC_TRACKS.find((t) => t.id === draft.musicTrack)?.title || 'Pulse'} · ${draft.musicVolume || 'medium'}`
           }
           onBack={() => setActiveScreen('dashboard')}
+          onOpenPaywall={() => openPaywall('preview')}
           onScriptChange={(storyboard) =>
             setDraft((prev) => (prev ? { ...prev, storyboard } : prev))
           }
@@ -245,14 +277,32 @@ export default function App() {
       {activeScreen === 'tracking' && (
         <GenerationTrackerScreen
           job={currentJob}
-          onCancel={() => setActiveScreen('dashboard')}
+          onCancel={goDashboard}
+        />
+      )}
+
+      {activeScreen === 'reels' && (
+        <MyReelsScreen
+          userId={userId}
+          onBack={goDashboard}
+          onOpenReel={(job) => {
+            setCurrentJob(job);
+            setStudioReturn('reels');
+            setActiveScreen('studio');
+          }}
         />
       )}
 
       {activeScreen === 'studio' && currentJob && (
         <VideoStudioScreen
           job={currentJob}
-          onBack={() => setActiveScreen('dashboard')}
+          onBack={() => {
+            if (studioReturn === 'reels') {
+              setActiveScreen('reels');
+              return;
+            }
+            goDashboard();
+          }}
         />
       )}
 

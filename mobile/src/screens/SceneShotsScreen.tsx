@@ -17,6 +17,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Colors } from '../theme/colors';
 import { ApiService, SceneShotRef, Storyboard } from '../services/api';
+import { creditBadgeText, getPricing } from '../services/pricing';
 import { SceneCopyFields } from '../components/SceneCopyFields';
 import { scriptReadyMessage, withSceneCopy } from '../utils/storyboardEdits';
 
@@ -28,18 +29,24 @@ interface LocalShot {
 
 interface Props {
   userId: string;
+  credits: number;
+  generating?: boolean;
   storyboard: Storyboard;
   productName?: string;
   onBack: () => void;
+  onOpenPaywall?: () => void;
   onScriptChange?: (storyboard: Storyboard) => void;
   onFinish: (shots: SceneShotRef[], storyboard: Storyboard) => void;
 }
 
 export const SceneShotsScreen: React.FC<Props> = ({
   userId,
+  credits,
+  generating = false,
   storyboard,
   productName,
   onBack,
+  onOpenPaywall,
   onScriptChange,
   onFinish,
 }) => {
@@ -64,6 +71,7 @@ export const SceneShotsScreen: React.FC<Props> = ({
   }, [scenes, shots]);
 
   const finish = () => {
+    if (generating) return;
     const blocked = scriptReadyMessage(board);
     if (blocked) {
       Alert.alert('Fix the words first', blocked);
@@ -74,6 +82,19 @@ export const SceneShotsScreen: React.FC<Props> = ({
       board
     );
   };
+
+  const generateLabel = credits < 1
+    ? 'Get credits to generate'
+    : generating
+      ? 'Starting…'
+      : 'Generate my reel · 1 credit';
+  const skipGenerateLabel = credits < 1
+    ? 'Get credits to generate'
+    : generating
+      ? 'Starting…'
+      : needsShot && !attached
+        ? 'Skip and generate · 1 credit'
+        : 'Skip this scene';
 
   const goNext = () => {
     if (!isLast) {
@@ -206,7 +227,9 @@ export const SceneShotsScreen: React.FC<Props> = ({
           <Text style={styles.back}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.step}>Scene {index + 1} of {scenes.length}</Text>
-        <View style={{ width: 48 }} />
+        <TouchableOpacity onPress={onOpenPaywall} disabled={!onOpenPaywall}>
+          <Text style={styles.creditChip}>{creditBadgeText(credits, getPricing())}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -290,17 +313,13 @@ export const SceneShotsScreen: React.FC<Props> = ({
             </TouchableOpacity>
 
             {attached && isConfirmed ? (
-              <TouchableOpacity style={styles.continueBtn} onPress={goNext} disabled={busy}>
-                <Text style={styles.continueText}>{isLast ? 'Generate my reel · 1 credit' : 'Continue'}</Text>
+              <TouchableOpacity style={styles.continueBtn} onPress={goNext} disabled={busy || generating}>
+                <Text style={styles.continueText}>{isLast ? generateLabel : 'Continue'}</Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.secondaryBtn} onPress={markSkip} disabled={busy}>
+              <TouchableOpacity style={styles.secondaryBtn} onPress={markSkip} disabled={busy || generating}>
                 <Text style={styles.secondaryText}>
-                  {isLast
-                    ? needsShot && !attached
-                      ? 'Skip and generate · 1 credit'
-                      : 'Skip this scene'
-                    : 'Skip this scene'}
+                  {isLast ? skipGenerateLabel : 'Skip this scene'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -324,6 +343,7 @@ const styles = StyleSheet.create({
   },
   back: { color: Colors.textSecondary, fontSize: 16, fontWeight: '600' },
   step: { color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  creditChip: { color: Colors.accentCyan, fontSize: 12, fontWeight: '800' },
   body: { flex: 1 },
   bodyContent: { paddingHorizontal: 20, paddingBottom: 16 },
   previewWrap: { marginTop: 8, marginBottom: 16 },

@@ -63,7 +63,7 @@ export const VideoStudioScreen: React.FC<Props> = ({ job, onBack }) => {
       setIsSaved(true);
       Alert.alert(
         'Saved',
-        `${title} is in Photos. Keep that copy — the in-app link expires in 7 days.`
+                `${title} is in Photos. Keep that copy — My reels only keeps the file for 7 days.`
       );
     }
   };
@@ -73,7 +73,7 @@ export const VideoStudioScreen: React.FC<Props> = ({ job, onBack }) => {
       Alert.alert('Not ready', 'This reel is not available to share.');
       return;
     }
-    MediaService.shareVideo(videoUrl, `LinkReel: ${title}`);
+    MediaService.shareVideo(videoUrl, `LinkReel: ${title}`).catch(() => undefined);
   };
 
   return (
@@ -124,7 +124,7 @@ export const VideoStudioScreen: React.FC<Props> = ({ job, onBack }) => {
             </TouchableOpacity>
           </View>
           <Text style={styles.expiryNote}>
-            The share link expires in 7 days. Save to Photos to keep your reel.
+            This reel stays in My reels for 7 days. Save to Photos to keep it.
           </Text>
         </View>
       </View>

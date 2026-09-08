@@ -8,6 +8,7 @@ import {
   getOrCreateUser,
   createJobWithAtomicDeduction,
   redeemStorePurchase,
+  listUserReels,
   firestore,
   JOBS_COLLECTION,
 } from '../services/firestore.service';
@@ -145,7 +146,7 @@ const CreateJobSchema = z.object({
   enableWebScraping: z.boolean().default(false),
   lockedScript: StoryboardSchema.optional(),
   sceneShots: z.array(SceneShotInputSchema).max(4).optional(),
-  idempotencyKey: z.string().min(1),
+  idempotencyKey: z.string().min(8).max(80),
   aspectRatio: z.enum(['9:16', '1:1', '16:9']).default('9:16'),
   stylePreset: z.enum(['saas_dark', 'ecommerce_punchy', 'minimal_editorial']).default('saas_dark'),
   voiceId: z.enum(['en-US-Neural2-F', 'en-US-Neural2-D']).default('en-US-Neural2-F'),
@@ -467,15 +468,36 @@ app.post('/api/v1/jobs', async (req: Request, res: Response): Promise<void> => {
 app.get('/api/v1/jobs/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const jobId = String(req.params.id);
+    const userId = String(req.query.userId || '');
     const jobDoc = await firestore.collection(JOBS_COLLECTION).doc(jobId).get();
     if (!jobDoc.exists) {
       res.status(404).json({ error: 'JOB_NOT_FOUND', message: 'The requested job does not exist.' });
       return;
     }
+    const data = jobDoc.data();
+    if (userId && data?.userId && data.userId !== userId) {
+      res.status(404).json({ error: 'JOB_NOT_FOUND', message: 'The requested job does not exist.' });
+      return;
+    }
 
-    res.json(jobDoc.data());
+    res.json(data);
   } catch (error: any) {
     res.status(500).json({ error: 'DATABASE_ERROR', message: error.message });
+  }
+});
+
+app.get('/api/v1/users/:uid/reels', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const uid = String(req.params.uid || '').trim();
+    if (uid.length < 3 || uid.length > 80) {
+      res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invalid user.' });
+      return;
+    }
+    const reels = await listUserReels(uid);
+    res.json({ reels });
+  } catch (error: any) {
+    console.error('[API Error /users/:uid/reels]', error);
+    res.status(500).json({ error: 'DATABASE_ERROR', message: 'Could not load your reels.' });
   }
 });
 

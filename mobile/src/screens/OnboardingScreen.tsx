@@ -21,7 +21,7 @@ export const OnboardingScreen: React.FC<Props> = ({ onComplete }) => {
     {
       emoji: '📱 ➔ 🖼️',
       title: 'Check the 4 scenes. Fix words, change or skip.',
-      description: 'Tap a caption or voice line if Gemini missed it. Change the screen if one is wrong. Skip uses a caption card. Still free until you generate.',
+      description: 'Tap a caption or voice line if a line is off. Change the screen if one is wrong. Skip uses a caption card. Still free until you generate.',
     },
     {
       emoji: '🚀 ➔ 📤',
