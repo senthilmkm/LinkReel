@@ -16,6 +16,7 @@ import { ApiService, StoreListing, StoreSceneShot, Storyboard } from '../service
 import { creditBadgeText, getPricing, refreshPricing, subscribePricing } from '../services/pricing';
 import { CAPTION_STYLES, CaptionStyleId } from '../config/captionStyles';
 import { MUSIC_TRACKS, MUSIC_VOLUMES, MusicTrackId, MusicVolumeId } from '../config/musicTracks';
+import { BrandCustomizer, BrandSettings } from '../components/BrandCustomizer';
 
 export interface StoryDraft {
   source: 'store' | 'story';
@@ -57,6 +58,12 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
   const [musicVolume, setMusicVolume] = useState<MusicVolumeId>('medium');
   const [playStoreEnabled, setPlayStoreEnabled] = useState(false);
   const [pricing, setPricing] = useState(getPricing);
+  const [brandSettings, setBrandSettings] = useState<BrandSettings>({
+    ctaText: 'Download on App Store',
+    accentColor: '#00F0FF',
+    watermarkText: 'LinkReel',
+    aspectRatio: '9:16',
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -322,25 +329,13 @@ export const DashboardScreen: React.FC<Props> = ({ credits, userId, onPlanned, o
           </>
         )}
 
-        <Text style={styles.sectionLabel}>SIZE</Text>
-        <View style={styles.aspectContainer}>
-          {[
-            { key: '9:16', title: '9:16', sub: 'Reels' },
-            { key: '1:1', title: '1:1', sub: 'Square' },
-            { key: '16:9', title: '16:9', sub: 'Landscape' },
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={[styles.aspectCard, aspectRatio === item.key && styles.activeCard]}
-              onPress={() => setAspectRatio(item.key as '9:16' | '1:1' | '16:9')}
-            >
-              <Text style={[styles.aspectTitle, aspectRatio === item.key && styles.activeText]}>
-                {item.title}
-              </Text>
-              <Text style={styles.aspectSub}>{item.sub}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <BrandCustomizer
+          settings={brandSettings}
+          onChange={(b) => {
+            setBrandSettings(b);
+            setAspectRatio(b.aspectRatio);
+          }}
+        />
 
         <Text style={styles.sectionLabel}>VOICE</Text>
         <View style={styles.voiceContainer}>

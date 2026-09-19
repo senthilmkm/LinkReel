@@ -15,11 +15,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.linkreel.app",
-      "buildNumber": "3",
+      "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPhotoLibraryAddUsageDescription": "LinkReel saves your finished reel to Photos so you can keep a copy.",
-        "NSPhotoLibraryUsageDescription": "LinkReel uses your photos so you can attach the app screens that match each scene."
+        "NSPhotoLibraryAddUsageDescription": "LinkReel saves your custom rendered video reel directly to your iOS Photos Library.",
+        "NSPhotoLibraryUsageDescription": "LinkReel accesses selected app screenshots to frame and sync each scene in your promo reel."
       }
     },
     "android": {
